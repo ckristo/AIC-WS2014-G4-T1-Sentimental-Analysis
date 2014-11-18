@@ -1,5 +1,6 @@
 package at.ac.tuwien.infosys.dsg.aic.ws2014.g4.t1;
 
+import cmu.arktweetnlp.Twokenize;
 import java.io.BufferedInputStream;
 import java.io.FileInputStream;
 import java.io.IOException;
@@ -20,7 +21,7 @@ import twitter4j.QueryResult;
 import twitter4j.TwitterObjectFactory;
 
 /**
- * TODO
+ * Class that shows how to gather tweets from a file / Twitter Search API.
  */
 public class TwitterExample {
 
@@ -32,7 +33,7 @@ public class TwitterExample {
 		 */
 		// set up twitter instance
 		Twitter twitter = new TwitterFactory().getInstance();
-		Query query = new Query("@twitter OR to:twitter");
+		Query query = new Query("@twitter :)");
 		
 		try {
 			// obtain oauth2 bearer token
@@ -75,7 +76,7 @@ public class TwitterExample {
 
 				System.out.println("@" + status.getUser().getScreenName() + ":"
 						+ status.getText());
-
+				
 				i++;
 			}
 		} catch (IOException | InterruptedException | TwitterException e) {
@@ -88,6 +89,6 @@ public class TwitterExample {
 			} catch (IOException e) {
 			}
 		}
-
+		
 	}
 }

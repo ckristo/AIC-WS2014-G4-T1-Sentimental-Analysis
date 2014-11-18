@@ -12,8 +12,12 @@
 hs_err_pid*
 /target/
 
-# eclipse project files
+# IDE-specific files
+# - Eclipse
 .classpath
 .project
 .settings
+# - Netbeans
+nb-configuration.xml
+
 
