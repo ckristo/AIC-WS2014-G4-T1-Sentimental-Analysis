@@ -1,6 +1,6 @@
 package at.ac.tuwien.infosys.dsg.aic.ws2014.g4.t1;
 
-import at.ac.tuwien.infosys.dsg.aic.ws2014.g4.t1.preprocessing.Preprocessor;
+import at.ac.tuwien.infosys.dsg.aic.ws2014.g4.t1.preprocessing.IPreprocessor;
 import at.ac.tuwien.infosys.dsg.aic.ws2014.g4.t1.preprocessing.PreprocessorImpl;
 
 import java.util.ArrayList;
@@ -15,7 +15,7 @@ import static org.junit.Assert.*;
  */
 public class PreprocessorTest {
 
-	Preprocessor preprocessor;
+	IPreprocessor preprocessor;
 	
 	@Before
 	public void setUp() {

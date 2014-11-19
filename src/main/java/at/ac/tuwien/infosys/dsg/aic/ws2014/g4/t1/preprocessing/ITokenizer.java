@@ -2,7 +2,7 @@ package at.ac.tuwien.infosys.dsg.aic.ws2014.g4.t1.preprocessing;
 
 import java.util.List;
 
-public interface Tokenizer {
+public interface ITokenizer {
 
 	/**
 	 * Performs tokenization of an input string.

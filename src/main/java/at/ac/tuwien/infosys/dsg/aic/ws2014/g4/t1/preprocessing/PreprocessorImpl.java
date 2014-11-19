@@ -4,7 +4,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.ListIterator;
 
-public class PreprocessorImpl implements Preprocessor {
+public class PreprocessorImpl implements IPreprocessor {
 	
 	/**
 	 * Emoticons token map.
@@ -58,8 +58,8 @@ public class PreprocessorImpl implements Preprocessor {
 			}
 			
 			// (4) replace abbreviations
-			if (false /*TODO*/) {
-				// TODO: create an abbreviation dictionary and replace abbrev. terms
+			if (false /*TODO - Martin*/) {
+				// TODO - Martin: create an abbreviation dictionary and replace abbrev. terms
 				// with their fully-written equivalent (e.g. "wtf" => "what the fuck")
 				// * create a singleton class similar to StopwordsDictionary
 				// * look for a list with abbreviations (check paper 'Twitter Sentiment Analysis: The Good the Bad and the OMG!')
@@ -81,7 +81,7 @@ public class PreprocessorImpl implements Preprocessor {
 	 * @return true if the string is an URL, false otherwise.
 	 */
 	private boolean isURL(String str) {
-		//TODO
+		//TODO - Martin
 		return false;
 	}
 	

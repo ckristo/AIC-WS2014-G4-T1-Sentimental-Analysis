@@ -1,6 +1,8 @@
 package at.ac.tuwien.infosys.dsg.aic.ws2014.g4.t1;
 
+import at.ac.tuwien.infosys.dsg.aic.ws2014.g4.t1.preprocessing.AbbreviationDictionary;
 import cmu.arktweetnlp.Twokenize;
+
 import java.io.BufferedInputStream;
 import java.io.FileInputStream;
 import java.io.IOException;

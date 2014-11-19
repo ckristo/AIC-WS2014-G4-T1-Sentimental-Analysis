@@ -4,7 +4,7 @@ import java.util.List;
 
 import cmu.arktweetnlp.Twokenize;
 
-public class TokenizerImpl implements Tokenizer {
+public class TokenizerImpl implements ITokenizer {
 
 	/**
 	 * Performs tokenization of an input string using the Twokenize tokenizer.

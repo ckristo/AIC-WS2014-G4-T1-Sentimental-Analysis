@@ -7,7 +7,7 @@ import twitter4j.Status;
 /**
  * Interface for our custom Twitter sentiment detection classifier.
  */
-public interface TwitterSentimentClassifier {
+public interface ITwitterSentimentClassifier {
 	
 	/**
 	 * Trains the classifier using a given training set

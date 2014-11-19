@@ -7,7 +7,7 @@ import twitter4j.Status;
 /**
  * Class implementing our custom Twitter sentiment detection classifier.
  */
-public class TwitterSentimentClassifierImpl implements TwitterSentimentClassifier {
+public class TwitterSentimentClassifierImpl implements ITwitterSentimentClassifier {
 	
 	// general TODOs:
 	// * tokenize tweet
