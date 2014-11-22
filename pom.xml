@@ -58,6 +58,18 @@
 			<artifactId>ark-tweet-nlp</artifactId>
 			<version>0.3.2</version>
 		</dependency>
+		<dependency>
+			<groupId>nz.ac.waikato.cms.weka</groupId>
+			<artifactId>weka-stable</artifactId>
+			<version>3.6.11</version>
+		</dependency>
+		<dependency>
+			<groupId>org.libsvm</groupId>
+			<artifactId>libsvm</artifactId>
+			<version>3.20</version>
+			<systemPath>${java.home}/lib/libsvm.jar</systemPath>
+			<scope>system</scope>
+		</dependency>
 	</dependencies>
 
 </project>
