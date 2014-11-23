@@ -58,6 +58,16 @@
 			<artifactId>ark-tweet-nlp</artifactId>
 			<version>0.3.2</version>
 		</dependency>
+		<dependency>
+			<groupId>nz.ac.waikato.cms.weka</groupId>
+			<artifactId>weka-stable</artifactId>
+			<version>3.6.11</version>
+		</dependency>
+		<dependency>
+			<groupId>com.facebook.thirdparty</groupId>
+			<artifactId>libsvm</artifactId>
+			<version>3.18.1</version>
+		</dependency>
 	</dependencies>
 
 </project>

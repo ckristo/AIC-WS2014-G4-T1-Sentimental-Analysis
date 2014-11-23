@@ -13,7 +13,7 @@ public interface ITwitterSentimentClassifier {
 	 * Trains the classifier using a given training set
 	 * @param trainingSet the labeled training data for the classifier
 	 */
-	public void train(Map<Status,Sentiment> trainingSet);
+	public void train(Map<Status,Sentiment> trainingSet) throws ClassifierException;
 	
 	/**
 	 * Determines the sentiment of a tweet.
