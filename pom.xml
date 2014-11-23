@@ -64,11 +64,9 @@
 			<version>3.6.11</version>
 		</dependency>
 		<dependency>
-			<groupId>org.libsvm</groupId>
+			<groupId>com.facebook.thirdparty</groupId>
 			<artifactId>libsvm</artifactId>
-			<version>3.20</version>
-			<systemPath>${java.home}/lib/libsvm.jar</systemPath>
-			<scope>system</scope>
+			<version>3.18.1</version>
 		</dependency>
 	</dependencies>
 
