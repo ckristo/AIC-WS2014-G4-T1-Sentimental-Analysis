@@ -1,24 +1,10 @@
 package at.ac.tuwien.infosys.dsg.aic.ws2014.g4.t1.preprocessing;
 
-import java.util.HashMap;
 import java.util.List;
 import java.util.ListIterator;
 
 public class PreprocessorImpl implements IPreprocessor {
-	
-	/**
-	 * Emoticons token map.
-	 */
-	private static final HashMap<String, String> EMOTICONS_TOKEN_MAP = new HashMap<>();
-	
-	static {
-		EMOTICONS_TOKEN_MAP.put(":-)", "__++SMILE++__");
-		EMOTICONS_TOKEN_MAP.put(":)",  "__++SMILE++__");
-		EMOTICONS_TOKEN_MAP.put(":D",  "__++SMILE++__");
-		//TODO: complete emoticon map -- differnet smiles expressing the
-		// same emotions should map to the same tokens
-	}
-	
+
 	/**
 	 * Username token.
 	 */
@@ -50,21 +36,9 @@ public class PreprocessorImpl implements IPreprocessor {
 				iterator.set(URL_TOKEN);
 				continue;
 			}
-			
-			// (3) replace emoticons
-			if (isEmoticon(word)) {
-				iterator.set(getEmoticonToken(word));
-				continue;
-			}
-			
-			// (4) replace abbreviations
-			if (false /*TODO - Martin*/) {
-				// TODO - Martin: create an abbreviation dictionary and replace abbrev. terms
-				// with their fully-written equivalent (e.g. "wtf" => "what the fuck")
-				// * create a singleton class similar to StopwordsDictionary
-				// * look for a list with abbreviations (check paper 'Twitter Sentiment Analysis: The Good the Bad and the OMG!')
-				continue;
-			}
+
+			// (4) replace abbreviations and emoticons
+			iterator.set(AbbreviationDictionary.getInstance().getAbbreviation(word));
 			
 			// (5) replace misspelled words
 			if (false /*TODO*/) {
@@ -81,26 +55,7 @@ public class PreprocessorImpl implements IPreprocessor {
 	 * @return true if the string is an URL, false otherwise.
 	 */
 	private boolean isURL(String str) {
-		//TODO - Martin
-		return false;
+		return (str.matches("^[a-zA-Z0-9\\-\\.]+\\.(com|org|net|mil|edu|COM|ORG|NET|MIL|EDU)$") ||
+				str.matches("((mailto\\:|(news|(ht|f)tp(s?))\\://){1}\\S+)"));
 	}
-	
-	/**
-	 * Checks if a given string is an emoticon.
-	 * @param str the string to check.
-	 * @return true if the string is an emoticon, false otherwise.
-	 */
-	private boolean isEmoticon(String str) {
-		return EMOTICONS_TOKEN_MAP.containsKey(str);
-	}
-	
-	/**
-	 * Returns the token for an emoticon.
-	 * @param str the string to check
-	 * @return the emoticon token or null if str is no known emoticon.
-	 */
-	private String getEmoticonToken(String str) {
-		return EMOTICONS_TOKEN_MAP.get(str);
-	}
-	
 }

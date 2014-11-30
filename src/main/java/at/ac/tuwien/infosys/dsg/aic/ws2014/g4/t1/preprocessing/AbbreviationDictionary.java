@@ -56,8 +56,8 @@ public class AbbreviationDictionary {
 	 * @return full word if the string is a abbreviation (exact match) or str otherwise.
 	 */
 	public String getAbbreviation(String str) {
-		if(abbreviations.containsKey(str.toLowerCase()))
-			return abbreviations.get(str.toLowerCase());
+		if(abbreviations.containsKey(str.toUpperCase()))
+			return abbreviations.get(str.toUpperCase());
 		else
 			return str;
 	}
@@ -88,9 +88,16 @@ public class AbbreviationDictionary {
 		}
 		// read file line by line
 		BufferedReader reader = new BufferedReader(new InputStreamReader(is));
-		String line;
+		String line ="";
+		try{
 		while ((line = reader.readLine()) != null) {
-			abbreviations.put(line.split(":")[0], line.split(":")[1]);
+			if(!line.matches("\\s*"))
+				abbreviations.put(line.split("---")[0], line.split("---")[1]);
 		}
+		} 
+		catch(Exception e) 
+		{
+			System.out.println(line);
+			}
 	}
 }
