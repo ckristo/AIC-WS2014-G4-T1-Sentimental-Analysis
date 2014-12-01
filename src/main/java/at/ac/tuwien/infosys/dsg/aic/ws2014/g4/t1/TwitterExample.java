@@ -34,9 +34,15 @@ public class TwitterExample {
 		 * EXAMPLE CODE for using the Twitter Search API --
 		 * https://dev.twitter.com/rest/public/search
 		 */
+		
+		//test such
+		String testsuche = "telekom austria";
 		// set up twitter instance
 		Twitter twitter = new TwitterFactory().getInstance();
-		Query query = new Query("@twitter :)");
+		
+		//input for 1 word-filter argument in command line
+		//mvn exec:java -Dexec.args="telekom"
+		Query query = new Query(args[0]);
 		
 		try {
 			// obtain oauth2 bearer token
@@ -62,7 +68,7 @@ public class TwitterExample {
 		try {
 			// uses the Apache Commons Compress library
 			// to directly read the bzipped file
-			FileInputStream fin = new FileInputStream("../tweets.txt.bz2");
+			FileInputStream fin = new FileInputStream("/Users/alexanderwurl/Documents/Uni/Master/ws_14/AIC/tweets.txt.bz2");
 			BufferedInputStream in = new BufferedInputStream(fin);
 			bzIn = new BZip2CompressorInputStream(in);
 
@@ -105,6 +111,8 @@ public class TwitterExample {
 
 			ITwitterSentimentClassifier cls = new TwitterSentimentClassifierImpl();
 			cls.train(sentiments);
+			
+			
 
 		} catch (IOException | InterruptedException | TwitterException e) {
 			e.printStackTrace();
