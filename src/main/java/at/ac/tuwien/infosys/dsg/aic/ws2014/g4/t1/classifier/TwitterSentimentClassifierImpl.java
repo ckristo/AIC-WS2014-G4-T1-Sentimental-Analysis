@@ -1,15 +1,16 @@
 package at.ac.tuwien.infosys.dsg.aic.ws2014.g4.t1.classifier;
 
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 
+import at.ac.tuwien.infosys.dsg.aic.ws2014.g4.t1.preprocessing.IPreprocessor;
+import at.ac.tuwien.infosys.dsg.aic.ws2014.g4.t1.preprocessing.ITokenizer;
+import at.ac.tuwien.infosys.dsg.aic.ws2014.g4.t1.preprocessing.PreprocessorImpl;
+import at.ac.tuwien.infosys.dsg.aic.ws2014.g4.t1.preprocessing.TokenizerImpl;
+import org.apache.commons.lang.StringUtils;
 import twitter4j.Status;
 
 import weka.classifiers.Classifier;
-import weka.core.Attribute;
-import weka.core.FastVector;
-import weka.core.Instance;
-import weka.core.Instances;
+import weka.core.*;
 import weka.classifiers.Evaluation;
 import weka.classifiers.functions.LibSVM;
 import weka.filters.unsupervised.attribute.StringToWordVector;
@@ -26,53 +27,127 @@ public class TwitterSentimentClassifierImpl implements ITwitterSentimentClassifi
 	// * ( add other features )
 	// ...
 
-	private Classifier cls = new LibSVM();
+	private Classifier cls = null;
+	Attribute attrSentiment, attrText;
 	private Evaluation eval;
+	Instances ts;
 
 	@Override
 	public void train(Map<Status, Sentiment> trainingSet) throws ClassifierException {
 		FastVector sentiments = new FastVector();
+		sentiments.addElement(Sentiment.NEUTRAL.toString());
 		sentiments.addElement(Sentiment.POSITIVE.toString());
 		sentiments.addElement(Sentiment.NEGATIVE.toString());
-		sentiments.addElement(Sentiment.NEUTRAL.toString());
+		attrSentiment = new Attribute("__sentiment__", sentiments);
 
-		Attribute attrSentiment = new Attribute("sentiment", sentiments),
-				  attrText = new Attribute("text", (FastVector)null);
-
-		FastVector attrs = new FastVector(2);
+		FastVector attrs = new FastVector();
 		attrs.addElement(attrSentiment);
-		attrs.addElement(attrText);
 
-		Instances ts = new Instances("twitter-sentiments", attrs, trainingSet.size());
+		Set<String> tokens = new HashSet<String>();
+		Map<Status, List<String>> twtokens = new HashMap<>();
 
 		for(Map.Entry<Status, Sentiment> entry : trainingSet.entrySet()) {
-			Instance inst = new Instance(2);
-			inst.setValue(attrSentiment, attrSentiment.indexOfValue(entry.getValue().toString()));
-			inst.setValue(attrText, entry.getKey().getText());
-			ts.add(inst);
+			String text = entry.getKey().getText();
+			ITokenizer tok = new TokenizerImpl();
+			List<String> twtoks = tok.tokenize(text);
+
+			IPreprocessor preproc = new PreprocessorImpl();
+			preproc.preprocess(twtoks);
+
+			tokens.addAll(twtoks);
+			twtokens.put(entry.getKey(), twtoks);
 		}
 
-		//TODO: we'll have to roll our own
-		StringToWordVector filter = new StringToWordVector();
+		for(String t : tokens) {
+			Attribute ta = new Attribute(t);
+			attrs.addElement(ta);
+		}
+
+		ts = new Instances("twitter-sentiments", attrs, trainingSet.size());
+
+		for(Map.Entry<Status, Sentiment> entry : trainingSet.entrySet()) {
+			List<String> twtoks = twtokens.get(entry.getKey());
+			System.out.println("tokens: " + StringUtils.join(twtoks, ','));
+
+			SparseInstance inst = new SparseInstance(ts.numAttributes());
+			inst.setValue(attrSentiment, entry.getValue().toString() /*attrSentiment.indexOfValue(entry.getValue().toString())*/);
+
+			// set contained tokens to 1
+			for(String t : twtoks) {
+				inst.setValue(ts.attribute(t), 1.0);
+			}
+			// set all other tokens to 0
+			double[] defaults = new double[inst.numAttributes()];
+			Arrays.fill(defaults, 0.0);
+			inst.replaceMissingValues(defaults);
+
+			ts.add(inst);
+			System.out.println("sentiment: "+entry.getValue().toString()+", instance: " + inst+", msg: "+entry.getKey().getText());
+		}
+
+		System.out.println("\n- ----------------------- AFTER FILTERING --------------------");
+
+		for(Object instobj : Collections.list(ts.enumerateInstances())) {
+			Instance inst = (Instance)instobj;
+			System.out.println("instance: " + inst);
+		}
+		ts.setClassIndex(0);	// class is the sentiment
+
+		int split = (int)(ts.numInstances()*0.7);
+		Instances train = new Instances(ts, 0, split);
+		train.setClassIndex(0);
+		Instances test = new Instances(ts, split+1, ts.numInstances()-split-1);
+		test.setClassIndex(0);
+
+		cls = new LibSVM();
 		try {
-			filter.setInputFormat(ts);
-			ts = filter.useFilter(ts, filter);
+			cls.buildClassifier(train);
 		} catch(Exception e) {
 			throw new ClassifierException(e);
 		}
 
+		//System.out.println("classifier: "+ts);
+
+		Evaluation eval = null;
 		try {
-			ts.setClassIndex(0);
-			cls.buildClassifier(ts);
-		} catch(Exception e) {
+			eval = new Evaluation(train);
+			eval.evaluateModel(cls, test);
+		} catch (Exception e) {
+			throw new ClassifierException(e);
+		}
+
+		System.out.println(eval.toSummaryString());
+
+		try {
+			Instance ti = ts.instance(1);
+			System.out.println("instance: "+ti);
+			System.out.println(cls.classifyInstance(ti));
+			System.out.println(ts.attribute(ts.classIndex()).value((int) ts.firstInstance().classValue()));
+			System.out.println(cls.distributionForInstance(ts.firstInstance()));
+		} catch (Exception e) {
 			throw new ClassifierException(e);
 		}
 	}
-	
+
 	@Override
-	public Sentiment classify(Status tweet) throws IllegalStateException {
-		// TODO
-		throw new UnsupportedOperationException("Not supported yet.");
+	public Sentiment classify(Status tweet) throws IllegalStateException, ClassifierException {
+		if(cls == null) throw new IllegalStateException("classifier has not been trained");
+		Instance inst = new Instance(2);
+		inst.setDataset(ts);
+		//inst.setValue(attrText, tweet.getText());
+		System.out.println("instance: " + inst);
+
+		//TODO: apply filter?
+		double sclass = 0;
+		try {
+			sclass = cls.classifyInstance(inst);
+		} catch (Exception e) {
+			throw new ClassifierException(e);
+		}
+		System.out.println("rating: "+sclass);
+		System.out.println(ts.attribute(ts.classIndex()).value((int) inst.classValue()));
+		//System.out.println(ts.distributionForInstance(ts.firstInstance()));
+		return Sentiment.NEUTRAL;
 	}
 
 	@Override

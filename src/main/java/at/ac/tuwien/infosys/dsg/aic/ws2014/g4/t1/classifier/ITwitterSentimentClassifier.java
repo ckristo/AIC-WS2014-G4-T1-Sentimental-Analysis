@@ -21,7 +21,7 @@ public interface ITwitterSentimentClassifier {
 	 * @return the sentiment class determined by the classifier.
 	 * @throws IllegalStateException if the classifier wasn't trained properly.
 	 */
-	public Sentiment classify(Status tweet) throws IllegalStateException;
+	public Sentiment classify(Status tweet) throws IllegalStateException, ClassifierException;
 	
 	/**
 	 * Determines the sentiment of a given set of tweets.

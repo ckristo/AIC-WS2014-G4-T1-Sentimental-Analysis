@@ -94,13 +94,14 @@ public class TwitterExample {
 					sentiment = Sentiment.NEGATIVE;
 				else continue;
 
-				System.out.println("@" + status.getUser().getScreenName() + ":"
+				System.out.println(i+": @" + status.getUser().getScreenName() + ":"
 						+ status.getText());
 
 				sentiments.put(status, sentiment);
 
 				i++;
 			}
+			System.out.printf("------ selected %d tweets for training\n", i);
 
 			ITwitterSentimentClassifier cls = new TwitterSentimentClassifierImpl();
 			cls.train(sentiments);
