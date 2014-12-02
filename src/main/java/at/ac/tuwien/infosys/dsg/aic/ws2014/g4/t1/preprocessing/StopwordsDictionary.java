@@ -6,20 +6,18 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.util.HashSet;
-import java.util.logging.Level;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 /**
- *
- * @author christoph
+ * A simple stopword dictionary.
  */
 public class StopwordsDictionary {
 
 	/**
 	 * The file to load the stopwords from.
 	 */
-	private static final String STOPWORDS_DICT_FILE = "/stopwords.txt";
+	private static final String DICT_FILE = "/stopwords.txt";
 	
 	/**
 	 * Logger instance.
@@ -57,12 +55,12 @@ public class StopwordsDictionary {
 	 * @param str the string to check
 	 * @return true if the string is a stopword (exact match) or false otherwise.
 	 */
-	public boolean isStopword(String str) {
+	public boolean containsWord(String str) {
 		return stopwords.contains(str.toLowerCase());
 	}
 	
 	/**
-	 * Performs init of the stopwords dictionary.
+	 * Performs initialization of the stopwords dictionary.
 	 */
 	private static void init() {
 		instance = new StopwordsDictionary();
@@ -81,7 +79,7 @@ public class StopwordsDictionary {
 	 */
 	private void loadFile() throws IOException {
 		// create stream for resource file
-		InputStream is = PreprocessorImpl.class.getResourceAsStream(STOPWORDS_DICT_FILE);
+		InputStream is = PreprocessorImpl.class.getResourceAsStream(DICT_FILE);
 		if (is == null) {
 			throw new FileNotFoundException("Stopwords dictionary file doesn't exist.");
 		}

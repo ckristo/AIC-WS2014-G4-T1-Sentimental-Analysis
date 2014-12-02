@@ -15,7 +15,12 @@ public class AbbreviationDictionary {
 	/**
 	 * The file to load the abbreviations from.
 	 */
-	private static final String ABBREVIATION_DICT_FILE = "/abbreviations.txt";
+	private static final String DICT_FILE = "/abbreviations.txt";
+	
+	/**
+	 * The string used to delimit the two elements of an abbreviation.
+	 */
+	private static final String DELIM_STR = "\\|";
 	
 	/**
 	 * Logger instance.
@@ -25,7 +30,7 @@ public class AbbreviationDictionary {
 	/**
 	 * The set instance containing all (loaded) abbreviations.
 	 */
-	private final HashMap<String, String> abbreviations = new HashMap<String, String>();
+	private final HashMap<String, String> abbreviations = new HashMap<>();
 	
 	/**
 	 * The singleton instance.
@@ -35,8 +40,7 @@ public class AbbreviationDictionary {
 	/**
 	 * Constructor.
 	 */
-	private AbbreviationDictionary() {
-	}
+	private AbbreviationDictionary() {}
 	
 	/**
 	 * Returns the abbreviations dictionary instance.
@@ -49,17 +53,22 @@ public class AbbreviationDictionary {
 		return instance;
 	}
 	
+	/**
+	 * Checks whether a given string is a known abbreviation.
+	 * @param str the string to check
+	 * @return true if the string is known abbreviation (exact match) or false otherwise.
+	 */
+	public boolean containsWord(String str) {
+		return abbreviations.containsKey(str.toLowerCase());
+	}
 	
 	/**
-	 * Checks whether a given string is a abbreviation, if so the full word is returned.
+	 * Returns the long form for a known abbreviation.
 	 * @param str the string to check
-	 * @return full word if the string is a abbreviation (exact match) or str otherwise.
+	 * @return the long form for a known abbreviation, or null otherwise.
 	 */
-	public String getAbbreviation(String str) {
-		if(abbreviations.containsKey(str.toUpperCase()))
-			return abbreviations.get(str.toUpperCase());
-		else
-			return str;
+	public String getLongForm(String str) {
+		return abbreviations.get(str.toLowerCase());
 	}
 	
 	/**
@@ -82,22 +91,18 @@ public class AbbreviationDictionary {
 	 */
 	private void loadFile() throws IOException {
 		// create stream for resource file
-		InputStream is = PreprocessorImpl.class.getResourceAsStream(ABBREVIATION_DICT_FILE);
+		InputStream is = PreprocessorImpl.class.getResourceAsStream(DICT_FILE);
 		if (is == null) {
 			throw new FileNotFoundException("Abbreviation dictionary file doesn't exist.");
 		}
 		// read file line by line
 		BufferedReader reader = new BufferedReader(new InputStreamReader(is));
-		String line ="";
-		try{
+		String line;
 		while ((line = reader.readLine()) != null) {
-			if(!line.matches("\\s*"))
-				abbreviations.put(line.split("---")[0], line.split("---")[1]);
-		}
-		} 
-		catch(Exception e) 
-		{
-			System.out.println(line);
+			String[] tmp = line.split(DELIM_STR);
+			if (tmp.length >= 2) {
+				abbreviations.put(tmp[0].toLowerCase(), tmp[1].toLowerCase());
 			}
+		}
 	}
 }
