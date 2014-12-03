@@ -6,7 +6,6 @@ import at.ac.tuwien.infosys.dsg.aic.ws2014.g4.t1.preprocessing.IPreprocessor;
 import at.ac.tuwien.infosys.dsg.aic.ws2014.g4.t1.preprocessing.ITokenizer;
 import at.ac.tuwien.infosys.dsg.aic.ws2014.g4.t1.preprocessing.PreprocessorImpl;
 import at.ac.tuwien.infosys.dsg.aic.ws2014.g4.t1.preprocessing.TokenizerImpl;
-import org.apache.commons.lang.StringUtils;
 import twitter4j.Status;
 
 import weka.classifiers.Classifier;
@@ -20,9 +19,6 @@ import weka.classifiers.functions.LibSVM;
 public class TwitterSentimentClassifierImpl implements ITwitterSentimentClassifier {
 	
 	// general TODOs:
-	// * tokenize tweet
-	// * run list of words through preprocessor
-	// * create feature vector for machine learning library based on the list of words
 	// * ( add other features )
 	// ...
 
@@ -143,30 +139,45 @@ public class TwitterSentimentClassifierImpl implements ITwitterSentimentClassifi
 	}
 
 	@Override
-	public Sentiment classify(Status tweet) throws IllegalStateException, ClassifierException {
-		if(cls == null) throw new IllegalStateException("classifier has not been trained");
-		Instance inst = new Instance(2);
-		inst.setDataset(ts);
-		//inst.setValue(attrText, tweet.getText());
-		System.out.println("instance: " + inst);
+	public double classify(Status tweet) throws IllegalStateException, ClassifierException {
+		if(cls == null)
+			throw new IllegalStateException("classifier has not been trained");
 
-		//TODO: apply filter?
-		double sclass = 0;
+		ITokenizer tokenizer = new TokenizerImpl();
+		String text = tweet.getText();
+		List<String> twtoks = tokenizer.tokenize(text);
+		IPreprocessor preproc = new PreprocessorImpl();
+		preproc.preprocess(twtoks);
+
+		Instance inst = new SparseInstance(ts.numAttributes());
+		inst.setDataset(ts);
+
+		for(String t : twtoks) {
+			Attribute attr = ts.attribute(t);
+			if(attr != null) inst.setValue(attr, 1.0);
+		}
+		double[] defaults = new double[inst.numAttributes()];
+		Arrays.fill(defaults, 0.0);
+		inst.replaceMissingValues(defaults);
+
 		try {
-			sclass = cls.classifyInstance(inst);
+			double sclass = cls.classifyInstance(inst);
+			return sclass/(attrSentiment.numValues()-1);
 		} catch (Exception e) {
 			throw new ClassifierException(e);
 		}
-		System.out.println("rating: "+sclass);
-		System.out.println(ts.attribute(ts.classIndex()).value((int) inst.classValue()));
-		//System.out.println(ts.distributionForInstance(ts.firstInstance()));
-		return Sentiment.NEUTRAL;
 	}
 
 	@Override
-	public Map<Status, Sentiment> classify(Set<Status> testSet) throws IllegalStateException {
-		// TODO
-		throw new UnsupportedOperationException("Not supported yet.");
+	public double classify(Set<Status> testSet) throws IllegalStateException, ClassifierException {
+		double sum = 0.0, wsum = 0.0;
+		for(Status s : testSet) {
+			//TODO: improve this primitive weighting
+			double weight = 1+s.getUser().getFollowersCount()*0.0001;
+			sum += classify(s)*weight;
+			wsum += weight;
+		}
+		return wsum > 0 ? sum/wsum : Double.NaN;
 	}
 
 }

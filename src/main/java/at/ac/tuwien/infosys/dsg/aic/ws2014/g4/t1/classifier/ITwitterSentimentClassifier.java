@@ -40,7 +40,7 @@ public interface ITwitterSentimentClassifier {
 	 * @return the sentiment class determined by the classifier.
 	 * @throws IllegalStateException if the classifier wasn't trained properly.
 	 */
-	public Sentiment classify(Status tweet) throws IllegalStateException, ClassifierException;
+	public double classify(Status tweet) throws IllegalStateException, ClassifierException;
 	
 	/**
 	 * Determines the sentiment of a given set of tweets.
@@ -48,6 +48,6 @@ public interface ITwitterSentimentClassifier {
 	 * @return a map with the determined sentiment classes for the tweets.
 	 * @throws IllegalStateException if the classifier wasn't trained properly.
 	 */
-	public Map<Status,Sentiment> classify(Set<Status> testSet) throws IllegalStateException;
+	public double classify(Set<Status> testSet) throws IllegalStateException, ClassifierException;
 	
 }

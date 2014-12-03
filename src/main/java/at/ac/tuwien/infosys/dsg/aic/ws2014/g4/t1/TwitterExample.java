@@ -15,7 +15,9 @@ import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
 
@@ -28,29 +30,6 @@ public class TwitterExample {
 
 	public static void main(String[] args) {
 
-		/**
-		 * EXAMPLE CODE for using the Twitter Search API --
-		 * https://dev.twitter.com/rest/public/search
-		 */
-		// set up twitter instance
-		Twitter twitter = new TwitterFactory().getInstance();
-		Query query = new Query("@twitter :)");
-		
-		try {
-			// obtain oauth2 bearer token
-			twitter.getOAuth2Token();
-
-			// execute query and print results
-			QueryResult result = twitter.search(query);
-			for (Status status : result.getTweets()) {
-				System.out.println("@" + status.getUser().getScreenName() + ":"
-						+ status.getText());
-			}
-		} catch (TwitterException e) {
-			e.printStackTrace();
-		}
-		
-		System.out.println("----------------------------------------");
 
 		/**
 		 * EXAMPLE CODE for loading a Twitter Stream API dump --
@@ -92,9 +71,6 @@ public class TwitterExample {
 					sentiment = Sentiment.NEGATIVE;
 				else continue;
 
-				System.out.println(i+": @" + status.getUser().getScreenName() + ":"
-						+ status.getText());
-
 				sentiments.put(status, sentiment);
 
 				i++;
@@ -104,6 +80,42 @@ public class TwitterExample {
 			ITwitterSentimentClassifier cls = new TwitterSentimentClassifierImpl();
 			cls.addTrainingData(sentiments);
 			cls.train();
+
+			System.out.println("----------------------------------------");
+
+			/**
+			 * EXAMPLE CODE for using the Twitter Search API --
+			 * https://dev.twitter.com/rest/public/search
+			 */
+			// set up twitter instance
+			Twitter twitter = new TwitterFactory().getInstance();
+
+			String search;
+			if(args.length > 0) search = args[0];
+			else {
+				logger.warn("no search term given, executing default search");
+				search = "@comcast";
+			}
+
+			Query query = new Query(search);
+
+			try {
+				// obtain oauth2 bearer token
+				twitter.getOAuth2Token();
+
+				// execute query and print results
+				QueryResult result = twitter.search(query);
+				for (Status status : result.getTweets()) {
+					logger.info("@" + status.getUser().getScreenName() + ":"
+							+ status.getText());
+				}
+
+				// classify the results
+				Set<Status> sts = new HashSet<Status>(result.getTweets());
+				System.out.printf("opinion for %s: %f\n", search, cls.classify(sts));
+			} catch (TwitterException e) {
+				e.printStackTrace();
+			}
 
 		} catch (IOException | InterruptedException | TwitterException e) {
 			e.printStackTrace();
