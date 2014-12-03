@@ -10,10 +10,29 @@ import twitter4j.Status;
 public interface ITwitterSentimentClassifier {
 	
 	/**
-	 * Trains the classifier using a given training set
+	 * Adds the given training set (consisting of Statuses and corresponding
+	 * Sentiments) to the classifier.
 	 * @param trainingSet the labeled training data for the classifier
+	 * @throws java.lang.IllegalStateException if the classifier was already
+	 * built (i.e. {@link #train()} was called)
 	 */
-	public void train(Map<Status,Sentiment> trainingSet) throws ClassifierException;
+	public void addTrainingData(Map<Status,Sentiment> trainingSet) throws IllegalStateException;
+
+	/**
+	 * Adds the given training set (consisting of strings and corresponding
+	 * sentiment values, where 0 is negative and 1 is positive) to the
+	 * classifier.
+	 * @param trainingSet the labeled training data for the classifier
+	 * @throws java.lang.IllegalStateException if the classifier was already
+	 * built (i.e. {@link #train()} was called)
+	 */
+	public void addTrainingWords(Map<String,Double> trainingSet) throws IllegalStateException;
+
+	/**
+	 * Trains the classifier using all previously supplied training data.
+	 * @throws ClassifierException
+	 */
+	public void train() throws ClassifierException;
 	
 	/**
 	 * Determines the sentiment of a tweet.

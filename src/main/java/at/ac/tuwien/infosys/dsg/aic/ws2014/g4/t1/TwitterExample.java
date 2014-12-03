@@ -102,7 +102,8 @@ public class TwitterExample {
 			System.out.printf("------ selected %d tweets for training\n", i);
 
 			ITwitterSentimentClassifier cls = new TwitterSentimentClassifierImpl();
-			cls.train(sentiments);
+			cls.addTrainingData(sentiments);
+			cls.train();
 
 		} catch (IOException | InterruptedException | TwitterException e) {
 			e.printStackTrace();
