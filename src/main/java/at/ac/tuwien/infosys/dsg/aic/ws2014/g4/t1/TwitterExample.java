@@ -43,7 +43,7 @@ public class TwitterExample {
 			StringDelimitedProcessor sdp = new StringDelimitedProcessor(queue);
 			sdp.setup(bzIn);
 
-			Map<Status, Sentiment> sentiments = new HashMap<Status, Sentiment>();
+			Map<Status, Double> sentiments = new HashMap<>();
 
 			// extract some JSON objects from the file
 			int i = 0, limit = 100;
@@ -57,12 +57,12 @@ public class TwitterExample {
 				 || status.getText().contains("#teamfollowback"))
 					continue;
 
-				Sentiment sentiment;
+				Double sentiment;
 				// highly sophisticated training set partitioning :)
 				if (status.getText().contains(":)") && !status.getText().contains(":("))
-					sentiment = Sentiment.POSITIVE;
+					sentiment = 1.0;
 				else if (!status.getText().contains(":)") && status.getText().contains(":("))
-					sentiment = Sentiment.NEGATIVE;
+					sentiment = 0.0;
 				else continue;
 
 				sentiments.put(status, sentiment);
@@ -73,6 +73,10 @@ public class TwitterExample {
 
 			ITwitterSentimentClassifier cls = new TwitterSentimentClassifierImpl();
 			cls.addTrainingData(sentiments);
+
+			List<SentiData> sentidata = SentiWordNet.readFile("SentiWordNet.txt");
+			cls.addSentiData(sentidata);
+
 			cls.train();
 
 			System.out.println("----------------------------------------");

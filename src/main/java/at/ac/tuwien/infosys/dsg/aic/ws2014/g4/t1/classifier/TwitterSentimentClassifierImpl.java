@@ -6,9 +6,12 @@ import at.ac.tuwien.infosys.dsg.aic.ws2014.g4.t1.preprocessing.IPreprocessor;
 import at.ac.tuwien.infosys.dsg.aic.ws2014.g4.t1.preprocessing.ITokenizer;
 import at.ac.tuwien.infosys.dsg.aic.ws2014.g4.t1.preprocessing.PreprocessorImpl;
 import at.ac.tuwien.infosys.dsg.aic.ws2014.g4.t1.preprocessing.TokenizerImpl;
+import edu.berkeley.nlp.util.StringUtils;
 import twitter4j.Status;
 
 import weka.classifiers.Classifier;
+import weka.classifiers.bayes.NaiveBayes;
+import weka.classifiers.lazy.IBk;
 import weka.core.*;
 import weka.classifiers.Evaluation;
 import weka.classifiers.functions.LibSVM;
@@ -26,42 +29,25 @@ public class TwitterSentimentClassifierImpl implements ITwitterSentimentClassifi
 	private Attribute attrSentiment;
 	private Instances ts;
 
-	private Set<String> tokens = new HashSet<>();
 	private List<SentiData> traindata = new ArrayList<>();
 
-	private class SentiData {
-		private List<String> tokens;
-		private Sentiment sentiment;
-
-		public SentiData(List<String> toks, Sentiment s) {
-			this.tokens = toks;
-			this.sentiment = s;
-		}
-
-		public Sentiment getSentiment() {
-			return sentiment;
-		}
-
-		public List<String> getTokens() {
-			return tokens;
-		}
-	}
-
-	public void addTrainingData(Map<Status, Sentiment> trainingSet) throws IllegalStateException {
+	public void addTrainingData(Map<Status, Double> trainingSet) throws IllegalStateException {
 		if(cls != null)
 			throw new IllegalStateException("classifier has already been trained");
 
 		ITokenizer tokenizer = new TokenizerImpl();
 		IPreprocessor preproc = new PreprocessorImpl();
 
-		for(Map.Entry<Status, Sentiment> entry : trainingSet.entrySet()) {
+		for(Map.Entry<Status, Double> entry : trainingSet.entrySet()) {
 			String text = entry.getKey().getText();
 			List<String> twtoks = tokenizer.tokenize(text);
 
 			preproc.preprocess(twtoks);
-
-			tokens.addAll(twtoks);
-			traindata.add(new SentiData(twtoks, entry.getValue()));
+			List<String> filtered = new ArrayList<>();
+			for(String t : twtoks) {
+				if(t != null && !t.equals("__++USERNAME++__") && !t.equals("H")) filtered.add(t.toLowerCase());
+			}
+			traindata.add(new SentiData(filtered, entry.getValue()));
 		}
 	}
 
@@ -74,39 +60,73 @@ public class TwitterSentimentClassifierImpl implements ITwitterSentimentClassifi
 	}
 
 	@Override
+	public void addSentiData(List<SentiData> trainingData) throws IllegalStateException {
+		if(cls != null)
+			throw new IllegalStateException("classifier has already been trained");
+
+		traindata.addAll(trainingData);
+		System.out.printf("added %d SentiData entries\n", trainingData.size());
+	}
+
+	@Override
 	public void train() throws ClassifierException {
 		FastVector sentiments = new FastVector();
-		sentiments.addElement(Sentiment.NEGATIVE.toString());
-		sentiments.addElement(Sentiment.NEUTRAL.toString());
-		sentiments.addElement(Sentiment.POSITIVE.toString());
+		for(Integer i = 0; i <= 10; i++) {
+			sentiments.addElement("s"+i.toString());
+			System.out.println("sentiment class " + i.toString());
+		}
 		attrSentiment = new Attribute("__sentiment__", sentiments);
 
-		FastVector attrs = new FastVector();
+		Set<String> tokens = new HashSet<>();
+		for(SentiData sd : traindata) {
+			tokens.addAll(sd.getTokens());
+		}
+
+		// build our own hash map with the attribute indices (WEKA performs a
+		// linear search otherwise...)
+		Map<String, Integer> attrmap = new HashMap<>();
+
+		FastVector attrs = new FastVector(tokens.size()+1);
 		attrs.addElement(attrSentiment);
 
+		int i = 1;
 		for(String t : tokens) {
 			if(t == null) continue;
 			Attribute attr = new Attribute(t);
 			attrs.addElement(attr);
+			attrmap.put(t, i);
+			i++;
 		}
 
+
 		ts = new Instances("twitter-sentiments", attrs, traindata.size());
+		ts.setClassIndex(0);
+
+		System.out.printf("training using sparse instances with %d attributes\n", ts.numAttributes());
+
+		double[] defaults = new double[ts.numAttributes()];
+		Arrays.fill(defaults, 0.0);
 
 		for(SentiData sd : traindata) {
 			List<String> twtoks = sd.getTokens();
 
 			SparseInstance inst = new SparseInstance(ts.numAttributes());
-			inst.setValue(attrSentiment, sd.getSentiment().toString());
+			inst.setDataset(ts);
+
+			Integer snt = new Integer((int)Math.round(sd.getSentiment() * 10.0));
+			inst.setValue(attrSentiment, "s"+snt.toString());
+			inst.setDataset(ts);
+			//System.out.println("adding tokens "+StringUtils.join(twtoks, ", ")+" with sentiment "+snt);
 
 			// set contained tokens to 1
 			for(String t : twtoks) {
 				if(t == null) continue;
-				inst.setValue(ts.attribute(t), 1.0);
+				inst.setValue(attrmap.get(t), 1.0);
 			}
 			// set all other tokens to 0
-			double[] defaults = new double[inst.numAttributes()];
-			Arrays.fill(defaults, 0.0);
 			inst.replaceMissingValues(defaults);
+
+			//System.out.println("instance: "+inst);
 
 			//inst.setWeight(10);	//TODO: custom weight, e.g. for manually classified training data
 			ts.add(inst);
@@ -114,18 +134,22 @@ public class TwitterSentimentClassifierImpl implements ITwitterSentimentClassifi
 
 		ts.setClassIndex(0);	// class is the sentiment
 
+		System.out.println("building classifier...");
+
+		cls = new IBk();
+		try {
+			cls.buildClassifier(ts);
+		} catch(Exception e) {
+			throw new ClassifierException(e);
+		}
+
+		/*System.out.println("evaluating classifier...");
+
 		int split = (int)(ts.numInstances()*0.7);
 		Instances train = new Instances(ts, 0, split);
 		train.setClassIndex(0);
 		Instances test = new Instances(ts, split+1, ts.numInstances()-split-1);
 		test.setClassIndex(0);
-
-		cls = new LibSVM();
-		try {
-			cls.buildClassifier(train);
-		} catch(Exception e) {
-			throw new ClassifierException(e);
-		}
 
 		Evaluation eval = null;
 		try {
@@ -135,7 +159,7 @@ public class TwitterSentimentClassifierImpl implements ITwitterSentimentClassifi
 			throw new ClassifierException(e);
 		}
 
-		System.out.println(eval.toSummaryString());
+		System.out.println(eval.toSummaryString());*/
 	}
 
 	@Override
@@ -149,19 +173,35 @@ public class TwitterSentimentClassifierImpl implements ITwitterSentimentClassifi
 		IPreprocessor preproc = new PreprocessorImpl();
 		preproc.preprocess(twtoks);
 
-		Instance inst = new SparseInstance(ts.numAttributes());
-		inst.setDataset(ts);
+		Instances testset = new Instances(ts, 1);
 
+		Instance inst = new SparseInstance(testset.numAttributes());
+		inst.setDataset(testset);
+
+		System.out.println("tweet: "+tweet.getText());
+		System.out.print("classify: ");
 		for(String t : twtoks) {
-			Attribute attr = ts.attribute(t);
-			if(attr != null) inst.setValue(attr, 1.0);
+			if(t == null) continue;
+			System.out.print(t.toLowerCase());
+			Attribute attr = testset.attribute(t.toLowerCase());
+			if(attr != null) {
+				inst.setValue(attr, 1.0);
+				System.out.print(" [exists]");
+			}
+			System.out.print(", ");
 		}
+		System.out.println("");
 		double[] defaults = new double[inst.numAttributes()];
 		Arrays.fill(defaults, 0.0);
 		inst.replaceMissingValues(defaults);
 
+		System.out.println("instance: "+inst);
+		testset.add(inst);
+		testset.setClassIndex(0);
+
 		try {
-			double sclass = cls.classifyInstance(inst);
+			double sclass = cls.classifyInstance(testset.instance(0));
+			System.out.println("class: "+testset.classAttribute().value((int)sclass));
 			return sclass/(attrSentiment.numValues()-1);
 		} catch (Exception e) {
 			throw new ClassifierException(e);

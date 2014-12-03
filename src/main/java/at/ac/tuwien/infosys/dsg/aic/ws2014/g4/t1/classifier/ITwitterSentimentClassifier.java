@@ -1,5 +1,6 @@
 package at.ac.tuwien.infosys.dsg.aic.ws2014.g4.t1.classifier;
 
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import twitter4j.Status;
@@ -16,7 +17,7 @@ public interface ITwitterSentimentClassifier {
 	 * @throws java.lang.IllegalStateException if the classifier was already
 	 * built (i.e. {@link #train()} was called)
 	 */
-	public void addTrainingData(Map<Status,Sentiment> trainingSet) throws IllegalStateException;
+	public void addTrainingData(Map<Status,Double> trainingSet) throws IllegalStateException;
 
 	/**
 	 * Adds the given training set (consisting of strings and corresponding
@@ -27,6 +28,8 @@ public interface ITwitterSentimentClassifier {
 	 * built (i.e. {@link #train()} was called)
 	 */
 	public void addTrainingWords(Map<String,Double> trainingSet) throws IllegalStateException;
+
+	void addSentiData(List<SentiData> trainingData) throws IllegalStateException;
 
 	/**
 	 * Trains the classifier using all previously supplied training data.
