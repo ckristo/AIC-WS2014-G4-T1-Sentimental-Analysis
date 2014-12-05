@@ -4,6 +4,8 @@ import java.util.List;
 import java.util.ListIterator;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 public class PreprocessorImpl implements IPreprocessor {
 	
@@ -16,22 +18,27 @@ public class PreprocessorImpl implements IPreprocessor {
 	/**
 	 * Dictionary used for stopword removal.
 	 */
-	private StopwordsDictionary stopwordsDict = StopwordsDictionary.getInstance();
+	private final StopwordsDictionary stopwordsDict = StopwordsDictionary.getInstance();
 	
 	/**
 	 * Dictionary used to expand abbreviations.
 	 */
-	private AbbreviationDictionary abbrevDict = AbbreviationDictionary.getInstance();
+	private final AbbreviationDictionary abbrevDict = AbbreviationDictionary.getInstance();
 	
 	/**
 	 * Tokenizer used to tokenize an expanded abbreviation.
 	 */
-	private ITokenizer tokenizer = new TokenizerImpl();
+	private final ITokenizer tokenizer = new TokenizerImpl();
 	
 	/**
 	 * Dictionary used for spell checking & correction.
 	 */
-	private SpellDictionary spellDict = SpellDictionary.getInstance();
+	private final SpellDictionary spellDict = SpellDictionary.getInstance();
+	
+	/**
+	 * The logger instance.
+	 */
+	private static final Logger logger = LogManager.getLogger("PreprocessorImpl");
 	
 	/**
 	 * Performs the preprocessing step.
@@ -39,44 +46,70 @@ public class PreprocessorImpl implements IPreprocessor {
 	 */
 	@Override
 	public void preprocess(List<String> tokens) {
+		logger.debug("* Preprocessing tweet:");
+		
 		ListIterator<String> iterator = tokens.listIterator();
-		String word;
+		String word, normalizedWord;
+		
 		while (iterator.hasNext()) {
 			word = iterator.next();
+			normalizedWord = normalize(word);
+			
+			logger.debug("  - preprocess normalized token '"+normalizedWord+"'");
 			
 			// (1) remove token if it's a stopword
-			if (stopwordsDict.containsWord(word)) {
+			if (stopwordsDict.containsWord(normalizedWord)) {
+				logger.debug("     --> stopword detected, remove it.");
+				
 				iterator.remove();
 				continue;
 			}
 			
 			// (2) replace URLs
-			if (isURL(word)) {
+			if (isURL(normalizedWord)) {
+				logger.debug("     --> URL detected, replace it with URL-token.");
+				
 				iterator.set(URL_TOKEN);
 				continue;
 			}
 			
 			// (3) replace usernames
-			if (isUsername(word)) {
+			if (isUsername(normalizedWord)) {
+				logger.debug("     --> username detected, replace it with Username-token.");
+				
 				iterator.set(USERNAME_TOKEN);
 				continue;
 			}
 			
 			// (4) replace abbreviations and emoticons
-			if (abbrevDict.containsWord(word)) {
+			if (abbrevDict.containsWord(normalizedWord)) {
+				String longForm = abbrevDict.getLongForm(normalizedWord);
+				
+				logger.debug("     --> abbreviation detected, replace it with tokens for '"+longForm+"'.");
+				
 				iterator.remove();
+				
 				// add tokens for the words in long form
-				for (String ad : tokenizer.tokenize(abbrevDict.getLongForm(word))) {
+				for (String ad : tokenizer.tokenize(longForm)) {
 					iterator.add(ad);
 				}
 				continue;
 			}
 			
 			// (5) replace misspelled words
-			if (!spellDict.containsWord(word)) {
-				iterator.set(spellDict.getSuggestion(word));
-				continue;
+			if (!spellDict.containsWord(normalizedWord)) {
+				String correction = spellDict.getSuggestion(normalizedWord);
+				if (correction != null) {
+					String replacement = normalize(correction);
+					logger.debug("     --> misspelled word detected, replace it with '"+replacement+"'");
+					
+					iterator.set(replacement);
+					continue;
+				}
 			}
+			
+			// normalize the token
+			iterator.set(normalizedWord);
 		}
 	}
 	
@@ -97,5 +130,14 @@ public class PreprocessorImpl implements IPreprocessor {
 	 */
 	private boolean isUsername(String str) {
 		return str.startsWith("@");
+	}
+	
+	/**
+	 * Performs normalization of a token.
+	 * @param str the string to normalize
+	 * @return the normalized string.
+	 */
+	private String normalize(String str) {
+		return str.toLowerCase();
 	}
 }

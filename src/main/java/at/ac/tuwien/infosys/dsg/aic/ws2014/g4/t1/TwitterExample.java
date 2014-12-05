@@ -1,32 +1,35 @@
 package at.ac.tuwien.infosys.dsg.aic.ws2014.g4.t1;
 
-import at.ac.tuwien.infosys.dsg.aic.ws2014.g4.t1.classifier.Sentiment;
 import at.ac.tuwien.infosys.dsg.aic.ws2014.g4.t1.classifier.ClassifierException;
 import at.ac.tuwien.infosys.dsg.aic.ws2014.g4.t1.classifier.ITwitterSentimentClassifier;
 import at.ac.tuwien.infosys.dsg.aic.ws2014.g4.t1.classifier.TwitterSentimentClassifierImpl;
-import com.twitter.hbc.core.processor.StringDelimitedProcessor;
-import org.apache.commons.compress.compressors.bzip2.BZip2CompressorInputStream;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
-import twitter4j.*;
-
 import java.io.BufferedInputStream;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.util.HashMap;
-import java.util.Map;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
 
+import org.apache.commons.compress.compressors.bzip2.BZip2CompressorInputStream;
+
+import com.twitter.hbc.core.processor.StringDelimitedProcessor;
+
+import twitter4j.Twitter;
+import twitter4j.TwitterException;
+import twitter4j.TwitterFactory;
+import twitter4j.Status;
+import twitter4j.Query;
+import twitter4j.QueryResult;
+import twitter4j.TwitterObjectFactory;
+
 /**
- * Class that shows how to gather tweets from a file / Twitter Search API.
+ * Class that shows the usage of the Twitter APIs (Twitter4J, Hosebird Client)
  */
 public class TwitterExample {
 
-	private static final Logger logger = LogManager.getLogger("SentimentClassifier");
-
 	public static void main(String[] args) {
+		
+		ITwitterSentimentClassifier classifier = new TwitterSentimentClassifierImpl();
 
 		/**
 		 * EXAMPLE CODE for using the Twitter Search API --
@@ -34,7 +37,7 @@ public class TwitterExample {
 		 */
 		// set up twitter instance
 		Twitter twitter = new TwitterFactory().getInstance();
-		Query query = new Query("@twitter :)");
+		Query query = new Query("@twitter :(");
 		
 		try {
 			// obtain oauth2 bearer token
@@ -45,8 +48,9 @@ public class TwitterExample {
 			for (Status status : result.getTweets()) {
 				System.out.println("@" + status.getUser().getScreenName() + ":"
 						+ status.getText());
+				System.out.println(classifier.classify(status));
 			}
-		} catch (TwitterException e) {
+		} catch (TwitterException | ClassifierException e) {
 			e.printStackTrace();
 		}
 		
@@ -70,44 +74,18 @@ public class TwitterExample {
 			StringDelimitedProcessor sdp = new StringDelimitedProcessor(queue);
 			sdp.setup(bzIn);
 
-			Map<Status, Sentiment> sentiments = new HashMap<Status, Sentiment>();
-
 			// extract some JSON objects from the file
-			int i = 0, limit = 100;
+			int i = 0, limit = 5;
 			while (sdp.process() && i < limit) {
 				Status status = TwitterObjectFactory.createStatus(queue.poll());
 
-				// simple filters to remove high-volume noise
-				//TODO: do this properly
-				if (status.getSource().startsWith("<a href=\"http://foursquare.com")
-				 || status.getSource().startsWith("<a href=\"http://trendsmap.com")
-				 || status.getText().contains("#teamfollowback"))
-					continue;
-
-				Sentiment sentiment;
-				// highly sophisticated training set partitioning :)
-				if (status.getText().contains(":)") && !status.getText().contains(":("))
-					sentiment = Sentiment.POSITIVE;
-				else if (!status.getText().contains(":)") && status.getText().contains(":("))
-					sentiment = Sentiment.NEGATIVE;
-				else continue;
-
-				System.out.println(i+": @" + status.getUser().getScreenName() + ":"
+				System.out.println("@" + status.getUser().getScreenName() + ":"
 						+ status.getText());
-
-				sentiments.put(status, sentiment);
 
 				i++;
 			}
-			System.out.printf("------ selected %d tweets for training\n", i);
-
-			ITwitterSentimentClassifier cls = new TwitterSentimentClassifierImpl();
-			cls.train(sentiments);
-
 		} catch (IOException | InterruptedException | TwitterException e) {
 			e.printStackTrace();
-		} catch(ClassifierException e) {
-			logger.error("exception while building classifier", e.getCause());
 		} finally {
 			// close input stream
 			try {
@@ -116,6 +94,6 @@ public class TwitterExample {
 			} catch (IOException e) {
 			}
 		}
-		
+
 	}
 }

@@ -3,7 +3,6 @@ package at.ac.tuwien.infosys.dsg.aic.ws2014.g4.t1.preprocessing;
 
 import com.swabunga.spell.engine.SpellDictionaryHashMap;
 import com.swabunga.spell.engine.Word;
-import java.io.File;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.util.List;
@@ -23,7 +22,7 @@ public class SpellDictionary {
 	/**
 	 * The threshold (edit distance) for the spell correction.
 	 */
-	private static final int SUGGESTION_THRESHOLD = 2;
+	private static final int SUGGESTION_THRESHOLD = 0;
 	
 	/**
 	 * Logger instance.
@@ -39,6 +38,11 @@ public class SpellDictionary {
 	 * The Jazzy spell dictionary implementation.
 	 */
 	private SpellDictionaryHashMap dictionary = null;
+	
+	/**
+	 * Matrix used to generate distance values for spell correction suggestions.
+	 */
+	private int[][] distMatrix = null;
 	
 	/**
 	 * Constructor.
@@ -67,8 +71,9 @@ public class SpellDictionary {
 	 * @return whether the word is present in the dictionary, false otherwise
 	 */
 	public boolean containsWord(String word) {
-		return dictionary.isCorrect(word);
-	}
+		//TODO: convert all words to lower case in dictionary
+		return dictionary.isCorrect(word.toLowerCase());
+ 	}
 	
 	/**
 	 * Gets a suggestion for a misspelled word.
@@ -76,7 +81,7 @@ public class SpellDictionary {
 	 * @return the replacement suggestion or null if no suggestions was found.
 	 */
 	public String getSuggestion(String word) {
-		List<Word> suggestions = dictionary.getSuggestions(word, SUGGESTION_THRESHOLD);
+		List<Word> suggestions = dictionary.getSuggestions(word, SUGGESTION_THRESHOLD, distMatrix);
 		if (suggestions.size() > 0) {
 			return suggestions.get(0).getWord();
 		} else {

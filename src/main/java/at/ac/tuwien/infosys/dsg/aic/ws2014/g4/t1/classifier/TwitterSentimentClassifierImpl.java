@@ -6,154 +6,287 @@ import at.ac.tuwien.infosys.dsg.aic.ws2014.g4.t1.preprocessing.IPreprocessor;
 import at.ac.tuwien.infosys.dsg.aic.ws2014.g4.t1.preprocessing.ITokenizer;
 import at.ac.tuwien.infosys.dsg.aic.ws2014.g4.t1.preprocessing.PreprocessorImpl;
 import at.ac.tuwien.infosys.dsg.aic.ws2014.g4.t1.preprocessing.TokenizerImpl;
-import org.apache.commons.lang.StringUtils;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
+import org.apache.commons.lang.ArrayUtils;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import twitter4j.Status;
-
 import weka.classifiers.Classifier;
+import weka.classifiers.functions.SMO;
 import weka.core.*;
-import weka.classifiers.Evaluation;
-import weka.classifiers.functions.LibSVM;
-import weka.filters.unsupervised.attribute.StringToWordVector;
 
 /**
  * Class implementing our custom Twitter sentiment detection classifier.
  */
 public class TwitterSentimentClassifierImpl implements ITwitterSentimentClassifier {
 	
-	// general TODOs:
-	// * tokenize tweet
-	// * run list of words through preprocessor
-	// * create feature vector for machine learning library based on the list of words
-	// * ( add other features )
-	// ...
-
-	private Classifier cls = null;
-	Attribute attrSentiment, attrText;
-	private Evaluation eval;
-	Instances ts;
-
+	/**
+	 * The classifier name.
+	 */
+	private static final String CLASSIFIER_NAME = "SentimentClassificationProblem";
+	
+	/**
+	 * The name of the output file for the trained classifier model.
+	 */
+	private static final String OUT_FILE_CLASSIFIER = "tmp/"+CLASSIFIER_NAME+".classifier";
+	
+	/**
+	 * The name of the output file for the training set.
+	 */
+	private static final String OUT_FILE_TRAININGDATA = "tmp/"+CLASSIFIER_NAME+".trainingdata";
+	
+	/**
+	 * Logger instance.
+	 */
+	private static final Logger logger = LogManager.getLogger("TwitterSentimentClassifierImpl");
+	
+	/**
+	 * Tokenizer used for Tweet processing.
+	 */
+	private final ITokenizer tokenizer = new TokenizerImpl();
+	
+	/**
+	 * Preprocessor used for Tweet processing.
+	 */
+	private final IPreprocessor preprocessor = new PreprocessorImpl();
+	
+	/**
+	 * The training data used to train the classifier.
+	 */
+	private Instances trainingData = null;
+	
+	/**
+	 * The Weka classifier used for sentiment classification.
+	 */
+	private Classifier classifier = null;
+	
 	@Override
 	public void train(Map<Status, Sentiment> trainingSet) throws ClassifierException {
-		FastVector sentiments = new FastVector();
-		sentiments.addElement(Sentiment.NEUTRAL.toString());
-		sentiments.addElement(Sentiment.POSITIVE.toString());
-		sentiments.addElement(Sentiment.NEGATIVE.toString());
-		attrSentiment = new Attribute("__sentiment__", sentiments);
+		// create vector of attributes
+		FastVector attributes = new FastVector(100);
 
-		FastVector attrs = new FastVector();
-		attrs.addElement(attrSentiment);
-
-		Set<String> tokens = new HashSet<String>();
-		Map<Status, List<String>> twtokens = new HashMap<>();
-
+		// add class attribute
+		FastVector classValues = new FastVector();
+		classValues.addElement(Sentiment.NEGATIVE.toString());
+		classValues.addElement(Sentiment.NEUTRAL.toString());
+		classValues.addElement(Sentiment.POSITIVE.toString());
+		Attribute classAttr = new Attribute("@@class@@", classValues);
+		attributes.addElement(classAttr);
+		
+		Map<Status, List<String>> processedTweets = new HashMap<>();
+		Set<String> allWords = new HashSet<>();
+		
+		logger.debug("## Preprocess all tweets of training set.");
+		
+		// process tweets of training set
 		for(Map.Entry<Status, Sentiment> entry : trainingSet.entrySet()) {
-			String text = entry.getKey().getText();
-			ITokenizer tok = new TokenizerImpl();
-			List<String> twtoks = tok.tokenize(text);
-
-			IPreprocessor preproc = new PreprocessorImpl();
-			preproc.preprocess(twtoks);
-
-			tokens.addAll(twtoks);
-			twtokens.put(entry.getKey(), twtoks);
+			List<String> tWords = processTweet(entry.getKey());
+			processedTweets.put(entry.getKey(), tWords);
+			allWords.addAll(tWords);
 		}
-
-		for(String t : tokens) {
-			Attribute ta = new Attribute(t);
-			attrs.addElement(ta);
+		
+		// create attributes for all occurring words
+		for (String w : allWords) {
+			attributes.addElement(new Attribute(w));
 		}
-
-		ts = new Instances("twitter-sentiments", attrs, trainingSet.size());
-
-		for(Map.Entry<Status, Sentiment> entry : trainingSet.entrySet()) {
-			List<String> twtoks = twtokens.get(entry.getKey());
-			System.out.println("tokens: " + StringUtils.join(twtoks, ','));
-
-			SparseInstance inst = new SparseInstance(ts.numAttributes());
-			inst.setValue(attrSentiment, entry.getValue().toString() /*attrSentiment.indexOfValue(entry.getValue().toString())*/);
-
-			// set contained tokens to 1
-			for(String t : twtoks) {
-				inst.setValue(ts.attribute(t), 1.0);
+		
+		// NOTE: do not alter attributes after the next step!
+		
+		trainingData = new Instances(CLASSIFIER_NAME, attributes, 100);
+		trainingData.setClass(classAttr);
+		
+		double[] zeros = new double[trainingData.numAttributes()];
+		
+		// create instances for the processed tweets and put them into the training data set
+		for(Map.Entry<Status, List<String>> entry : processedTweets.entrySet()) {
+			SparseInstance inst = new SparseInstance(trainingData.numAttributes());
+			inst.setDataset(trainingData);
+			
+			// set each occurring word (= binary feature) in the instance vector to 1
+			for (String w : entry.getValue()) {
+				inst.setValue(trainingData.attribute(w), 1.0);
 			}
-			// set all other tokens to 0
-			double[] defaults = new double[inst.numAttributes()];
-			Arrays.fill(defaults, 0.0);
-			inst.replaceMissingValues(defaults);
-
-			ts.add(inst);
-			System.out.println("sentiment: "+entry.getValue().toString()+", instance: " + inst+", msg: "+entry.getKey().getText());
+			// set all other values in the instance vector to 0
+			inst.replaceMissingValues(zeros);
+			
+			// set class value
+			inst.setClassValue(trainingSet.get(entry.getKey()).toString());
+			
+			trainingData.add(inst);
 		}
-
-		System.out.println("\n- ----------------------- AFTER FILTERING --------------------");
-
-		for(Object instobj : Collections.list(ts.enumerateInstances())) {
-			Instance inst = (Instance)instobj;
-			System.out.println("instance: " + inst);
-		}
-		ts.setClassIndex(0);	// class is the sentiment
-
-		int split = (int)(ts.numInstances()*0.7);
-		Instances train = new Instances(ts, 0, split);
-		train.setClassIndex(0);
-		Instances test = new Instances(ts, split+1, ts.numInstances()-split-1);
-		test.setClassIndex(0);
-
-		cls = new LibSVM();
+		
+		logger.debug("## Train the classifier.");
+		
+		// train the classifier
+		classifier = new SMO();
 		try {
-			cls.buildClassifier(train);
-		} catch(Exception e) {
-			throw new ClassifierException(e);
+			classifier.buildClassifier(trainingData);
+		} catch (Exception ex) {
+			logger.error("Couldn't build classifier.", ex);
+			throw new ClassifierException("Failed on building the classifier", ex);
 		}
-
-		//System.out.println("classifier: "+ts);
-
-		Evaluation eval = null;
+		
+		// write used training set to file
 		try {
-			eval = new Evaluation(train);
-			eval.evaluateModel(cls, test);
-		} catch (Exception e) {
-			throw new ClassifierException(e);
+			writeTrainingDataToFile();
+		} catch (IOException ex) {
+			logger.warn("Couldn't write training data to file.", ex);
+			//TODO: check if we have to remove a corrupted file
 		}
-
-		System.out.println(eval.toSummaryString());
-
+		// write trained classifier to file
 		try {
-			Instance ti = ts.instance(1);
-			System.out.println("instance: "+ti);
-			System.out.println(cls.classifyInstance(ti));
-			System.out.println(ts.attribute(ts.classIndex()).value((int) ts.firstInstance().classValue()));
-			System.out.println(cls.distributionForInstance(ts.firstInstance()));
-		} catch (Exception e) {
-			throw new ClassifierException(e);
+			writeClassifierToFile();
+		} catch (IOException ex) {
+			logger.warn("Couldn't write trained classifier to file.", ex);
+			//TODO: check if we have to remove a corrupted file
 		}
 	}
-
+	
 	@Override
-	public Sentiment classify(Status tweet) throws IllegalStateException, ClassifierException {
-		if(cls == null) throw new IllegalStateException("classifier has not been trained");
-		Instance inst = new Instance(2);
-		inst.setDataset(ts);
-		//inst.setValue(attrText, tweet.getText());
-		System.out.println("instance: " + inst);
-
-		//TODO: apply filter?
-		double sclass = 0;
-		try {
-			sclass = cls.classifyInstance(inst);
-		} catch (Exception e) {
-			throw new ClassifierException(e);
+	public Double[] classify(Status tweet) throws IllegalStateException, ClassifierException {
+		tryRestoringPrevTrainedClassifier();
+		
+		if (classifier == null) {
+			throw new IllegalStateException("classifier hasn't been trained yet");
 		}
-		System.out.println("rating: "+sclass);
-		System.out.println(ts.attribute(ts.classIndex()).value((int) inst.classValue()));
-		//System.out.println(ts.distributionForInstance(ts.firstInstance()));
-		return Sentiment.NEUTRAL;
+		
+		// create vector of attributes
+		FastVector attributes = new FastVector(100);
+		
+		// add class attribute
+		FastVector classValues = new FastVector();
+		classValues.addElement(Sentiment.NEGATIVE.toString());
+		classValues.addElement(Sentiment.NEUTRAL.toString());
+		classValues.addElement(Sentiment.POSITIVE.toString());
+		Attribute classAttr = new Attribute("@@class@@", classValues);
+		attributes.addElement(classAttr);
+		
+		// set all attributes to zero
+		Enumeration<Attribute> enumeratedAttrs = trainingData.enumerateAttributes();
+		while (enumeratedAttrs.hasMoreElements()) {
+			Attribute attr = enumeratedAttrs.nextElement();
+			attributes.addElement(attr);
+		}
+		
+		Instances testData = new Instances("SentimentClassificationProblemTest", attributes, 100);
+		testData.setClass(classAttr);
+		
+		SparseInstance inst = new SparseInstance(testData.numAttributes());
+		inst.setDataset(testData);
+		
+		double[] zeros = new double[testData.numAttributes()];
+		
+		// set attributes to 1
+		List<String> words = processTweet(tweet);
+		for (String w : words) {
+			if (testData.attribute(w) != null)
+				inst.setValue(testData.attribute(w), 1.0);
+		}
+		// set all other values in the instance vector to 0
+		inst.replaceMissingValues(zeros);
+			
+		double[] classifyValues;
+		try {
+			// classify instance
+			classifyValues = classifier.distributionForInstance(inst);
+		} catch (Exception ex) {
+			logger.error("Couldn't classify instance.", ex);
+			throw new ClassifierException("Couldn't classify instance", ex);
+		}
+		
+        return ArrayUtils.toObject(classifyValues);
 	}
-
+	
 	@Override
-	public Map<Status, Sentiment> classify(Set<Status> testSet) throws IllegalStateException {
-		// TODO
-		throw new UnsupportedOperationException("Not supported yet.");
+	public Map<Status, Double[]> classify(Collection<Status> testSet) throws IllegalStateException, ClassifierException {
+		Map<Status, Double[]> results = new HashMap<>();
+		for (Status s : testSet) {
+			results.put(s, classify(s));
+		}
+		return results;
 	}
-
+	
+	/**
+	 * Returns the feature-relevant words of a Tweet.
+	 * @param tweet the tweet to prepare.
+	 * @return a list of feature-relevant words (= tokenized and preprocessed text of Tweet).
+	 */
+	private List<String> processTweet(Status tweet) {
+		List<String> tokens = tokenizer.tokenize(tweet.getText());
+		preprocessor.preprocess(tokens);
+		return tokens;
+	}
+	
+	/**
+	 * Write trained classifier to file.
+	 */
+	private void writeClassifierToFile() throws IOException {
+		// write trained classifier to file
+		try (ObjectOutputStream modelOutStream = new ObjectOutputStream(new FileOutputStream(OUT_FILE_CLASSIFIER))) {
+			modelOutStream.writeObject(classifier);
+		}
+	}
+	
+	/**
+	 * Write training set to file.
+	 */
+	private void writeTrainingDataToFile() throws IOException {
+		// write training data object to file
+		try (ObjectOutputStream modelOutStream = new ObjectOutputStream(new FileOutputStream(OUT_FILE_TRAININGDATA))) {
+			modelOutStream.writeObject(trainingData);
+		}
+	}
+	
+	/**
+	 * Read trained classifier from file.
+	 * @return the read classifier object.
+	 * @throws IOException
+	 * @throws ClassNotFoundException 
+	 */
+	private Classifier readClassifierFromFile() throws IOException, ClassNotFoundException {
+		try (ObjectInputStream modelInStream = new ObjectInputStream(new FileInputStream(OUT_FILE_CLASSIFIER))) {
+			Classifier cl = (Classifier) modelInStream.readObject();
+			return cl;
+		}
+	}
+	
+	/**
+	 * Read test data from from file.
+	 * @return the read test data (instances object).
+	 * @throws IOException
+	 * @throws ClassNotFoundException 
+	 */
+	private Instances readTrainingDataFromFile() throws IOException, ClassNotFoundException {
+		try (ObjectInputStream modelInStream = new ObjectInputStream(new FileInputStream(OUT_FILE_TRAININGDATA))) {
+			Instances insts = (Instances) modelInStream.readObject();
+			return insts;
+		}
+	}
+	
+	/**
+	 * Tries to restore a prev. trained classifier.
+	 */
+	private void tryRestoringPrevTrainedClassifier() {
+		// try to load existing training data set
+		if (new File(OUT_FILE_CLASSIFIER).exists()) {
+			try {
+				trainingData = readTrainingDataFromFile();
+			} catch (IOException | ClassNotFoundException ex) {
+				logger.warn("Couldn't read training data from file.", ex);
+			}
+		}
+		// try to load existing trained classifier
+		if (new File(OUT_FILE_CLASSIFIER).exists()) {
+			try {
+				classifier = readClassifierFromFile();
+			} catch (IOException | ClassNotFoundException ex) {
+				logger.warn("Couldn't read prev. trained classifier from file.", ex);
+			}
+		}
+	}
 }

@@ -22,19 +22,26 @@
 				<groupId>org.codehaus.mojo</groupId>
 				<artifactId>exec-maven-plugin</artifactId>
 				<version>1.2.1</version>
+				<!--
 				<configuration>
 					<mainClass>at.ac.tuwien.infosys.dsg.aic.ws2014.g4.t1.TwitterExample</mainClass>
 				</configuration>
+				-->
 			</plugin>
 		</plugins>
 	</build>
-
 
 	<dependencies>
 		<dependency>
 			<groupId>junit</groupId>
 			<artifactId>junit</artifactId>
 			<version>4.11</version>
+			<scope>test</scope>
+		</dependency>
+		<dependency>
+			<groupId>org.mockito</groupId>
+			<artifactId>mockito-all</artifactId>
+			<version>1.10.8</version>
 			<scope>test</scope>
 		</dependency>
 		<dependency>
@@ -56,6 +63,11 @@
 			<groupId>org.apache.commons</groupId>
 			<artifactId>commons-compress</artifactId>
 			<version>1.9</version>
+		</dependency>
+		<dependency>
+			<groupId>org.apache.commons</groupId>
+			<artifactId>commons-csv</artifactId>
+			<version>1.1</version>
 		</dependency>
 		<dependency>
 			<groupId>org.twitter4j</groupId>
@@ -82,11 +94,13 @@
 			<artifactId>weka-stable</artifactId>
 			<version>3.6.11</version>
 		</dependency>
+		<!--
 		<dependency>
 			<groupId>com.facebook.thirdparty</groupId>
 			<artifactId>libsvm</artifactId>
 			<version>3.18.1</version>
 		</dependency>
+		-->
 	</dependencies>
 
 </project>
