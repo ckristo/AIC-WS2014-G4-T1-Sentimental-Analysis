@@ -25,7 +25,7 @@ public class AbbreviationDictionary {
 	/**
 	 * Logger instance.
 	 */
-	private static final Logger logger = LogManager.getLogger("AbbreviationsDictionary");
+	private static final Logger logger = LogManager.getLogger(AbbreviationDictionary.class);
 	
 	/**
 	 * The set instance containing all (loaded) abbreviations.

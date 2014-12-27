@@ -22,7 +22,7 @@ public class StopwordsDictionary {
 	/**
 	 * Logger instance.
 	 */
-	private static final Logger logger = LogManager.getLogger("StopwordsDictionary");
+	private static final Logger logger = LogManager.getLogger(StopwordsDictionary.class);
 	
 	/**
 	 * The set instance containing all (loaded) stopwords.

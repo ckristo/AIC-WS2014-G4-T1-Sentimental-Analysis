@@ -43,7 +43,7 @@ public class TwitterSentimentClassifierImpl implements ITwitterSentimentClassifi
 	/**
 	 * Logger instance.
 	 */
-	private static final Logger logger = LogManager.getLogger("TwitterSentimentClassifierImpl");
+	private static final Logger logger = LogManager.getLogger(TwitterSentimentClassifierImpl.class);
 	
 	/**
 	 * Tokenizer used for Tweet processing.

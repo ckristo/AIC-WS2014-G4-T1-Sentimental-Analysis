@@ -11,7 +11,7 @@ public class TokenizerImpl implements ITokenizer {
 	/**
 	 * The logger instance.
 	 */
-	private static final Logger logger = LogManager.getLogger("TokenizerImpl");
+	private static final Logger logger = LogManager.getLogger(TokenizerImpl.class);
 	
 	/**
 	 * Performs tokenization of an input string using the Twokenize tokenizer.

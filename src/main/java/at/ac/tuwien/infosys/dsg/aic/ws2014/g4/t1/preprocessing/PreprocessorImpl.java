@@ -38,7 +38,7 @@ public class PreprocessorImpl implements IPreprocessor {
 	/**
 	 * The logger instance.
 	 */
-	private static final Logger logger = LogManager.getLogger("PreprocessorImpl");
+	private static final Logger logger = LogManager.getLogger(PreprocessorImpl.class);
 	
 	/**
 	 * Performs the preprocessing step.

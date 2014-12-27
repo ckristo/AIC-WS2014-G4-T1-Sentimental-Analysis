@@ -27,7 +27,7 @@ public class SpellDictionary {
 	/**
 	 * Logger instance.
 	 */
-	private static final Logger logger = LogManager.getLogger("StopwordsDictionary");
+	private static final Logger logger = LogManager.getLogger(SpellDictionary.class);
 	
 	/**
 	 * The singleton instance.
