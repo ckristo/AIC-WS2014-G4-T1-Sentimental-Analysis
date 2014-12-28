@@ -1,5 +1,7 @@
 package at.ac.tuwien.infosys.dsg.aic.ws2014.g4.t1.classifier;
 
+import at.ac.tuwien.infosys.dsg.aic.ws2014.g4.t1.helper.Config;
+import at.ac.tuwien.infosys.dsg.aic.ws2014.g4.t1.helper.Constants;
 import java.util.*;
 
 import at.ac.tuwien.infosys.dsg.aic.ws2014.g4.t1.preprocessing.IPreprocessor;
@@ -26,24 +28,29 @@ import weka.core.*;
 public class TwitterSentimentClassifierImpl implements ITwitterSentimentClassifier {
 	
 	/**
-	 * The classifier name.
-	 */
-	private static final String CLASSIFIER_NAME = "SentimentClassificationProblem";
-	
-	/**
-	 * The name of the output file for the trained classifier model.
-	 */
-	private static final String OUT_FILE_CLASSIFIER = "tmp/"+CLASSIFIER_NAME+".classifier";
-	
-	/**
-	 * The name of the output file for the training set.
-	 */
-	private static final String OUT_FILE_TRAININGDATA = "tmp/"+CLASSIFIER_NAME+".trainingdata";
-	
-	/**
 	 * Logger instance.
 	 */
 	private static final Logger logger = LogManager.getLogger(TwitterSentimentClassifierImpl.class);
+	
+	/**
+	 * The classifier name.
+	 */
+	private final String CLASSIFIER_NAME;
+	
+	/**
+	 * Indicator whether to export the trained classifier to a file.
+	 */
+	private final boolean EXPORT_TRAINED_CLASSIFIER;
+	
+	/**
+	 * The export file path for the attributes data.
+	 */
+	private final String OUTPUT_FILEPATH_ATTRIBUTES;
+	
+	/**
+	 * The export file path for the classifier data.
+	 */
+	private final String OUTPUT_FILEPATH_CLASSIFIER;
 	
 	/**
 	 * Tokenizer used for Tweet processing.
@@ -56,27 +63,41 @@ public class TwitterSentimentClassifierImpl implements ITwitterSentimentClassifi
 	private final IPreprocessor preprocessor = new PreprocessorImpl();
 	
 	/**
-	 * The training data used to train the classifier.
+	 * A set with all word attributes used by the Weka classifier.
 	 */
-	private Instances trainingData = null;
+	private FastVector attributes;
 	
 	/**
 	 * The Weka classifier used for sentiment classification.
 	 */
 	private Classifier classifier = null;
 	
+	/**
+	 * Constructor.
+	 */
+	public TwitterSentimentClassifierImpl() {
+		CLASSIFIER_NAME = Config.getProperty(Constants.CONFIG_KEY_CLASSIFIER_NAME, getClass().getName());
+		EXPORT_TRAINED_CLASSIFIER = Config.getPropertyAsBoolean(Constants.CONFIG_KEY_CLASSIFIER_EXPORT_TRAINED_DATA_TO_FILE, false);
+		if (EXPORT_TRAINED_CLASSIFIER) {
+			String outputFilename = Config.getProperty(Constants.CONFIG_KEY_CLASSIFIER_OUTPUT_DIRECTORY, ".") 
+					+ File.separator 
+					+ CLASSIFIER_NAME;
+			OUTPUT_FILEPATH_ATTRIBUTES = outputFilename + ".attributes";
+			OUTPUT_FILEPATH_CLASSIFIER = outputFilename + ".classifier";
+		} else {
+			OUTPUT_FILEPATH_ATTRIBUTES = null;
+			OUTPUT_FILEPATH_CLASSIFIER = null;
+		}
+	}
+	
 	@Override
 	public void train(Map<Status, Sentiment> trainingSet) throws ClassifierException {
 		// create vector of attributes
-		FastVector attributes = new FastVector(100);
+		FastVector wekaAttrs = new FastVector(100);
 
 		// add class attribute
-		FastVector classValues = new FastVector();
-		classValues.addElement(Sentiment.NEGATIVE.toString());
-		classValues.addElement(Sentiment.NEUTRAL.toString());
-		classValues.addElement(Sentiment.POSITIVE.toString());
-		Attribute classAttr = new Attribute("@@class@@", classValues);
-		attributes.addElement(classAttr);
+		Attribute classAttr = createClassAttribute();
+		wekaAttrs.addElement(classAttr);
 		
 		Map<Status, List<String>> processedTweets = new HashMap<>();
 		Set<String> allWords = new HashSet<>();
@@ -87,17 +108,21 @@ public class TwitterSentimentClassifierImpl implements ITwitterSentimentClassifi
 		for(Map.Entry<Status, Sentiment> entry : trainingSet.entrySet()) {
 			List<String> tWords = processTweet(entry.getKey());
 			processedTweets.put(entry.getKey(), tWords);
+			
 			allWords.addAll(tWords);
 		}
 		
 		// create attributes for all occurring words
+		attributes = new FastVector(100);
 		for (String w : allWords) {
-			attributes.addElement(new Attribute(w));
+			Attribute attr = new Attribute(w);
+			attributes.addElement(attr);
+			wekaAttrs.addElement(attr);
 		}
 		
 		// NOTE: do not alter attributes after the next step!
 		
-		trainingData = new Instances(CLASSIFIER_NAME, attributes, 100);
+		Instances trainingData = new Instances(CLASSIFIER_NAME, wekaAttrs, 100);
 		trainingData.setClass(classAttr);
 		
 		double[] zeros = new double[trainingData.numAttributes()];
@@ -131,49 +156,40 @@ public class TwitterSentimentClassifierImpl implements ITwitterSentimentClassifi
 			throw new ClassifierException("Failed on building the classifier", ex);
 		}
 		
-		// write used training set to file
-		try {
-			writeTrainingDataToFile();
-		} catch (IOException ex) {
-			logger.warn("Couldn't write training data to file.", ex);
-			//TODO: check if we have to remove a corrupted file
-		}
-		// write trained classifier to file
-		try {
-			writeClassifierToFile();
-		} catch (IOException ex) {
-			logger.warn("Couldn't write trained classifier to file.", ex);
-			//TODO: check if we have to remove a corrupted file
+		// export trained classifier
+		if (EXPORT_TRAINED_CLASSIFIER) {
+			try {
+				writeAttributesDataToFile();
+			} catch (IOException ex) {
+				logger.warn("Couldn't write attributes to file.", ex);
+			}
+			try {
+				writeClassifierToFile();
+			} catch (IOException ex) {
+				logger.warn("Couldn't write trained classifier to file.", ex);
+			}
 		}
 	}
 	
 	@Override
 	public Double[] classify(Status tweet) throws IllegalStateException, ClassifierException {
-		tryRestoringPrevTrainedClassifier();
+		tryRestoringTrainedClassifier();
 		
 		if (classifier == null) {
 			throw new IllegalStateException("classifier hasn't been trained yet");
 		}
 		
 		// create vector of attributes
-		FastVector attributes = new FastVector(100);
+		FastVector wekaAttrs = new FastVector(100);
 		
 		// add class attribute
-		FastVector classValues = new FastVector();
-		classValues.addElement(Sentiment.NEGATIVE.toString());
-		classValues.addElement(Sentiment.NEUTRAL.toString());
-		classValues.addElement(Sentiment.POSITIVE.toString());
-		Attribute classAttr = new Attribute("@@class@@", classValues);
-		attributes.addElement(classAttr);
+		Attribute classAttr = createClassAttribute();
+		wekaAttrs.addElement(classAttr);
 		
 		// set all attributes to zero
-		Enumeration<Attribute> enumeratedAttrs = trainingData.enumerateAttributes();
-		while (enumeratedAttrs.hasMoreElements()) {
-			Attribute attr = enumeratedAttrs.nextElement();
-			attributes.addElement(attr);
-		}
+		wekaAttrs.appendElements(attributes);
 		
-		Instances testData = new Instances("SentimentClassificationProblemTest", attributes, 100);
+		Instances testData = new Instances(CLASSIFIER_NAME, wekaAttrs, 100);
 		testData.setClass(classAttr);
 		
 		SparseInstance inst = new SparseInstance(testData.numAttributes());
@@ -212,6 +228,18 @@ public class TwitterSentimentClassifierImpl implements ITwitterSentimentClassifi
 	}
 	
 	/**
+	 * Creates an attribute with all classes.
+	 * @return an attribute with all classes.
+	 */
+	private Attribute createClassAttribute() {
+		FastVector classValues = new FastVector();
+		classValues.addElement(Sentiment.NEGATIVE.toString());
+		classValues.addElement(Sentiment.NEUTRAL.toString());
+		classValues.addElement(Sentiment.POSITIVE.toString());
+		return new Attribute("@@class@@", classValues);
+	}
+	
+	/**
 	 * Returns the feature-relevant words of a Tweet.
 	 * @param tweet the tweet to prepare.
 	 * @return a list of feature-relevant words (= tokenized and preprocessed text of Tweet).
@@ -223,22 +251,47 @@ public class TwitterSentimentClassifierImpl implements ITwitterSentimentClassifi
 	}
 	
 	/**
-	 * Write trained classifier to file.
+	 * Creates all necessary, non-existing directories for a given file path.
+	 * @param path the file path
 	 */
-	private void writeClassifierToFile() throws IOException {
-		// write trained classifier to file
-		try (ObjectOutputStream modelOutStream = new ObjectOutputStream(new FileOutputStream(OUT_FILE_CLASSIFIER))) {
-			modelOutStream.writeObject(classifier);
+	private void createDirectory(String path) {
+		File parent = new File(path).getParentFile();
+		if (!parent.exists()) {
+			if (!parent.mkdirs()) {
+				logger.warn("Couldn't create parent directories for path '"+path+"'");
+			}
 		}
 	}
 	
 	/**
 	 * Write training set to file.
 	 */
-	private void writeTrainingDataToFile() throws IOException {
-		// write training data object to file
-		try (ObjectOutputStream modelOutStream = new ObjectOutputStream(new FileOutputStream(OUT_FILE_TRAININGDATA))) {
-			modelOutStream.writeObject(trainingData);
+	private void writeAttributesDataToFile() throws IOException {
+		createDirectory(OUTPUT_FILEPATH_ATTRIBUTES);
+		try (ObjectOutputStream modelOutStream = new ObjectOutputStream(new FileOutputStream(OUTPUT_FILEPATH_ATTRIBUTES))) {
+			modelOutStream.writeObject(attributes);
+		}
+	}
+	
+	/**
+	 * Write trained classifier to file.
+	 */
+	private void writeClassifierToFile() throws IOException {
+		createDirectory(OUTPUT_FILEPATH_CLASSIFIER);
+		try (ObjectOutputStream modelOutStream = new ObjectOutputStream(new FileOutputStream(OUTPUT_FILEPATH_CLASSIFIER))) {
+			modelOutStream.writeObject(classifier);
+		}
+	}
+	
+	/**
+	 * Read test data from from file.
+	 * @return the read test data (instances object).
+	 * @throws IOException
+	 * @throws ClassNotFoundException 
+	 */
+	private FastVector readAttributesDataFromFile() throws IOException, ClassNotFoundException {
+		try (ObjectInputStream modelInStream = new ObjectInputStream(new FileInputStream(OUTPUT_FILEPATH_ATTRIBUTES))) {
+			return (FastVector) modelInStream.readObject();
 		}
 	}
 	
@@ -249,39 +302,25 @@ public class TwitterSentimentClassifierImpl implements ITwitterSentimentClassifi
 	 * @throws ClassNotFoundException 
 	 */
 	private Classifier readClassifierFromFile() throws IOException, ClassNotFoundException {
-		try (ObjectInputStream modelInStream = new ObjectInputStream(new FileInputStream(OUT_FILE_CLASSIFIER))) {
-			Classifier cl = (Classifier) modelInStream.readObject();
-			return cl;
+		try (ObjectInputStream modelInStream = new ObjectInputStream(new FileInputStream(OUTPUT_FILEPATH_CLASSIFIER))) {
+			return (Classifier) modelInStream.readObject();
 		}
 	}
 	
 	/**
-	 * Read test data from from file.
-	 * @return the read test data (instances object).
-	 * @throws IOException
-	 * @throws ClassNotFoundException 
+	 * Tries to restore a previously trained classifier.
 	 */
-	private Instances readTrainingDataFromFile() throws IOException, ClassNotFoundException {
-		try (ObjectInputStream modelInStream = new ObjectInputStream(new FileInputStream(OUT_FILE_TRAININGDATA))) {
-			Instances insts = (Instances) modelInStream.readObject();
-			return insts;
-		}
-	}
-	
-	/**
-	 * Tries to restore a prev. trained classifier.
-	 */
-	private void tryRestoringPrevTrainedClassifier() {
+	private void tryRestoringTrainedClassifier() {
 		// try to load existing training data set
-		if (new File(OUT_FILE_CLASSIFIER).exists()) {
+		if (new File(OUTPUT_FILEPATH_ATTRIBUTES).exists()) {
 			try {
-				trainingData = readTrainingDataFromFile();
+				attributes = readAttributesDataFromFile();
 			} catch (IOException | ClassNotFoundException ex) {
-				logger.warn("Couldn't read training data from file.", ex);
+				logger.warn("Couldn't read attributes data from file.", ex);
 			}
 		}
 		// try to load existing trained classifier
-		if (new File(OUT_FILE_CLASSIFIER).exists()) {
+		if (new File(OUTPUT_FILEPATH_CLASSIFIER).exists()) {
 			try {
 				classifier = readClassifierFromFile();
 			} catch (IOException | ClassNotFoundException ex) {

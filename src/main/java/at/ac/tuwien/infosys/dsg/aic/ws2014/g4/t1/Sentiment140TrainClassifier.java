@@ -94,12 +94,6 @@ public class Sentiment140TrainClassifier {
 	 * @param args the arguments
 	 */
 	public static void main(String[] args) {
-		/*DBG*/
-		if (args.length == 0) {
-			args = new String[] { "../tmp/trainingandtestdata/training.1600000.processed.noemoticon.csv.bz2" };
-		}
-		/*DBG*/
-		
 		// check arguments
 		if (args.length == 0) {
 			System.err.println("Missing argument <bzipped-csv-file>");
