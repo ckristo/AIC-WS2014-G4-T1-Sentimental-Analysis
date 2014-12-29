@@ -3,7 +3,9 @@ package at.ac.tuwien.infosys.dsg.aic.ws2014.g4.t1.preprocessing;
 
 import com.swabunga.spell.engine.SpellDictionaryHashMap;
 import com.swabunga.spell.engine.Word;
+import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.util.List;
 import org.apache.logging.log4j.LogManager;
@@ -57,12 +59,35 @@ public class SpellDictionary {
 		if (instance == null) {
 			init();
 		}
+		return instance;
+	}
+	
+	/**
+	 * Performs the initialization of the spell dictionary.
+	 */
+	private static void init() {
 		try {
-			instance.dictionary = new SpellDictionaryHashMap(new InputStreamReader(SpellDictionary.class.getResourceAsStream(DICT_FILE)));
+			instance = new SpellDictionary();
+			instance.dictionary = new SpellDictionaryHashMap();
+			instance.loadDictionary();
 		} catch (IOException ex) {
 			logger.error("Couldn't load spell dictionary file", ex);
 		}
-		return instance;
+	}
+	
+	/**
+	 * Loads the dictionary file.
+	 * @throws 
+	 *   - FileNotFoundException if the spell dictionary file doesn't exist
+	 *   - IOException if the spell dictionary file couldn't be read
+	 */
+	private void loadDictionary() throws IOException {
+		// load dictionary file
+		InputStream is = SpellDictionary.class.getResourceAsStream(DICT_FILE);
+		if (is == null) {
+			throw new FileNotFoundException("Spell dictionary resource '"+DICT_FILE+"' couldn't be found!");
+		}
+		dictionary.addDictionary(new InputStreamReader(is));
 	}
 	
 	/**
@@ -87,12 +112,5 @@ public class SpellDictionary {
 		} else {
 			return null;
 		}
-	}
-	
-	/**
-	 * Performs initialization of the spell dictionary.
-	 */
-	private static void init() {
-		instance = new SpellDictionary();
 	}
 }

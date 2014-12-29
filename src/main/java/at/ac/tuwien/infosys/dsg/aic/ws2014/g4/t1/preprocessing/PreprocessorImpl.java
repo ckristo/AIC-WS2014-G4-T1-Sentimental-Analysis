@@ -23,7 +23,7 @@ public class PreprocessorImpl implements IPreprocessor {
 	/**
 	 * Dictionary used to expand abbreviations.
 	 */
-	private final AbbreviationDictionary abbrevDict = AbbreviationDictionary.getInstance();
+	private final AbbreviationsDictionary abbrevDict = AbbreviationsDictionary.getInstance();
 	
 	/**
 	 * Tokenizer used to tokenize an expanded abbreviation.

@@ -73,7 +73,7 @@ public class Sentiment140TrainClassifier {
 	/**
 	 * The max. number of elements to put into the training set per class.
 	 */
-	private static final int LIMIT_PER_CLASS = 50;
+	private static final int LIMIT_PER_CLASS = 50000;
 	
 	/**
 	 * Logger.

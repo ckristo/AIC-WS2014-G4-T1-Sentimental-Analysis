@@ -1,7 +1,6 @@
 package at.ac.tuwien.infosys.dsg.aic.ws2014.g4.t1.classifier;
 
 import at.ac.tuwien.infosys.dsg.aic.ws2014.g4.t1.helper.Config;
-import at.ac.tuwien.infosys.dsg.aic.ws2014.g4.t1.helper.Constants;
 import java.util.*;
 
 import at.ac.tuwien.infosys.dsg.aic.ws2014.g4.t1.preprocessing.IPreprocessor;
@@ -76,10 +75,20 @@ public class TwitterSentimentClassifierImpl implements ITwitterSentimentClassifi
 	 * Constructor.
 	 */
 	public TwitterSentimentClassifierImpl() {
-		CLASSIFIER_NAME = Config.getProperty(Constants.CONFIG_KEY_CLASSIFIER_NAME, getClass().getName());
-		EXPORT_TRAINED_CLASSIFIER = Config.getPropertyAsBoolean(Constants.CONFIG_KEY_CLASSIFIER_EXPORT_TRAINED_DATA_TO_FILE, false);
+		Config config = Config.getInstance();
+		
+		String classifierName = config.getClassifierName();
+		if (classifierName == null) {
+			String defaultName = getClass().getName();
+			logger.warn("Classifier name not specified in the configuration file -- setting to '"+defaultName+"'");
+			CLASSIFIER_NAME = defaultName;
+		} else {
+			CLASSIFIER_NAME = classifierName;
+		}
+		
+		EXPORT_TRAINED_CLASSIFIER = config.getExportTrainedClassifierToFile();
 		if (EXPORT_TRAINED_CLASSIFIER) {
-			String outputFilename = Config.getProperty(Constants.CONFIG_KEY_CLASSIFIER_OUTPUT_DIRECTORY, ".") 
+			String outputFilename = config.getClassifierOutputDirectory()
 					+ File.separator 
 					+ CLASSIFIER_NAME;
 			OUTPUT_FILEPATH_ATTRIBUTES = outputFilename + ".attributes";

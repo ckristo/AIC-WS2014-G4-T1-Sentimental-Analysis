@@ -10,7 +10,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 /**
- * A simple stopword dictionary.
+ * A simple stopwords dictionary.
  */
 public class StopwordsDictionary {
 
@@ -51,15 +51,6 @@ public class StopwordsDictionary {
 	}
 	
 	/**
-	 * Checks whether a given string is a stopword.
-	 * @param str the string to check
-	 * @return true if the string is a stopword (exact match) or false otherwise.
-	 */
-	public boolean containsWord(String str) {
-		return stopwords.contains(str.toLowerCase());
-	}
-	
-	/**
 	 * Performs initialization of the stopwords dictionary.
 	 */
 	private static void init() {
@@ -91,4 +82,12 @@ public class StopwordsDictionary {
 		}
 	}
 	
+	/**
+	 * Checks whether a given string is a stopword.
+	 * @param str the string to check
+	 * @return true if the string is a stopword (exact match) or false otherwise.
+	 */
+	public boolean containsWord(String str) {
+		return stopwords.contains(str.toLowerCase());
+	}
 }

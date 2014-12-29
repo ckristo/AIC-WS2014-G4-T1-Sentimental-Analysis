@@ -10,7 +10,7 @@ import java.util.HashMap;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-public class AbbreviationDictionary {
+public class AbbreviationsDictionary {
 
 	/**
 	 * The file to load the abbreviations from.
@@ -25,7 +25,7 @@ public class AbbreviationDictionary {
 	/**
 	 * Logger instance.
 	 */
-	private static final Logger logger = LogManager.getLogger(AbbreviationDictionary.class);
+	private static final Logger logger = LogManager.getLogger(AbbreviationsDictionary.class);
 	
 	/**
 	 * The set instance containing all (loaded) abbreviations.
@@ -35,18 +35,18 @@ public class AbbreviationDictionary {
 	/**
 	 * The singleton instance.
 	 */
-	private static AbbreviationDictionary instance = null;
+	private static AbbreviationsDictionary instance = null;
 	
 	/**
 	 * Constructor.
 	 */
-	private AbbreviationDictionary() {}
+	private AbbreviationsDictionary() {}
 	
 	/**
 	 * Returns the abbreviations dictionary instance.
 	 * @return the abbreviations dictionary instance.
 	 */
-	public static AbbreviationDictionary getInstance() {
+	public static AbbreviationsDictionary getInstance() {
 		if (instance == null) {
 			init();
 		}
@@ -54,28 +54,10 @@ public class AbbreviationDictionary {
 	}
 	
 	/**
-	 * Checks whether a given string is a known abbreviation.
-	 * @param str the string to check
-	 * @return true if the string is known abbreviation (exact match) or false otherwise.
-	 */
-	public boolean containsWord(String str) {
-		return abbreviations.containsKey(str.toLowerCase());
-	}
-	
-	/**
-	 * Returns the long form for a known abbreviation.
-	 * @param str the string to check
-	 * @return the long form for a known abbreviation, or null otherwise.
-	 */
-	public String getLongForm(String str) {
-		return abbreviations.get(str.toLowerCase());
-	}
-	
-	/**
 	 * Performs init of the abbreviations dictionary.
 	 */
 	private static void init() {
-		instance = new AbbreviationDictionary();
+		instance = new AbbreviationsDictionary();
 		try {
 			instance.loadFile();
 		} catch (IOException ex) {
@@ -104,5 +86,23 @@ public class AbbreviationDictionary {
 				abbreviations.put(tmp[0].toLowerCase(), tmp[1].toLowerCase());
 			}
 		}
+	}
+	
+	/**
+	 * Checks whether a given string is a known abbreviation.
+	 * @param str the string to check
+	 * @return true if the string is known abbreviation (exact match) or false otherwise.
+	 */
+	public boolean containsWord(String str) {
+		return abbreviations.containsKey(str.toLowerCase());
+	}
+	
+	/**
+	 * Returns the long form for a known abbreviation.
+	 * @param str the string to check
+	 * @return the long form for a known abbreviation, or null otherwise.
+	 */
+	public String getLongForm(String str) {
+		return abbreviations.get(str.toLowerCase());
 	}
 }

@@ -20,4 +20,5 @@ hs_err_pid*
 # - Netbeans
 nb-configuration.xml
 
-
+/data/
+/tmp/
