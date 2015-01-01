@@ -31,53 +31,61 @@ public class TwitterExample {
 		 */
 		InputStream bzIn = null;
 		try {
-			// uses the Apache Commons Compress library
-			// to directly read the bzipped file
-			FileInputStream fin = new FileInputStream("../tweets.txt.bz2");
-			BufferedInputStream in = new BufferedInputStream(fin);
-			bzIn = new BZip2CompressorInputStream(in);
-
-			// set up hbc's StringDelimitedProcessor -- see
-			// https://github.com/twitter/hbc
-			BlockingQueue<String> queue = new ArrayBlockingQueue<>(10);
-			StringDelimitedProcessor sdp = new StringDelimitedProcessor(queue);
-			sdp.setup(bzIn);
-
-			Map<Status, Double> sentiments = new HashMap<>();
-
-			// extract some JSON objects from the file
-			int i = 0, limit = 100;
-			while (sdp.process() && i < limit) {
-				Status status = TwitterObjectFactory.createStatus(queue.poll());
-
-				// simple filters to remove high-volume noise
-				//TODO: do this properly
-				if (status.getSource().startsWith("<a href=\"http://foursquare.com")
-				 || status.getSource().startsWith("<a href=\"http://trendsmap.com")
-				 || status.getText().contains("#teamfollowback"))
-					continue;
-
-				Double sentiment;
-				// highly sophisticated training set partitioning :)
-				if (status.getText().contains(":)") && !status.getText().contains(":("))
-					sentiment = 1.0;
-				else if (!status.getText().contains(":)") && status.getText().contains(":("))
-					sentiment = 0.0;
-				else continue;
-
-				sentiments.put(status, sentiment);
-
-				i++;
-			}
-			System.out.printf("------ selected %d tweets for training\n", i);
-
 			ITwitterSentimentClassifier cls = new TwitterSentimentClassifierImpl();
-			cls.addTrainingData(sentiments);
+			if(args.length < 1) {
 
-			List<SentiData> sentidata = SentiWordNet.readFile("SentiWordNet.txt");
-			cls.addSentiData(sentidata);
+				// uses the Apache Commons Compress library
+				// to directly read the bzipped file
+				FileInputStream fin = new FileInputStream("/home/standard/tweets.txt.bz2");
+				BufferedInputStream in = new BufferedInputStream(fin);
+				bzIn = new BZip2CompressorInputStream(in);
 
-			cls.train();
+				// set up hbc's StringDelimitedProcessor -- see
+				// https://github.com/twitter/hbc
+				BlockingQueue<String> queue = new ArrayBlockingQueue<>(10);
+				StringDelimitedProcessor sdp = new StringDelimitedProcessor(queue);
+				sdp.setup(bzIn);
+
+				Map<Status, Double> sentiments = new HashMap<>();
+
+				// extract some JSON objects from the file
+				int i = 0, limit = 10000;
+				while (sdp.process() && i < limit) {
+					Status status = TwitterObjectFactory.createStatus(queue.poll());
+
+					// simple filters to remove high-volume noise
+					//TODO: do this properly
+					if (status.getSource().startsWith("<a href=\"http://foursquare.com")
+							|| status.getSource().startsWith("<a href=\"http://trendsmap.com")
+							|| status.getText().contains("#teamfollowback"))
+						continue;
+
+					Double sentiment;
+					// highly sophisticated training set partitioning :)
+					if (status.getText().contains(":)") && !status.getText().contains(":("))
+						sentiment = 1.0;
+					else if (!status.getText().contains(":)") && status.getText().contains(":("))
+						sentiment = 0.0;
+					else continue;
+
+					sentiments.put(status, sentiment);
+
+					i++;
+				}
+				System.out.printf("------ selected %d tweets for training\n", i);
+
+				cls.addTrainingData(sentiments);
+
+				List<SentiData> sentidata = SentiWordNet.readFile("SentiWordNet.txt");
+				cls.addSentiData(sentidata);
+
+				cls.train();
+
+				cls.save("/tmp/senti.arff");
+			}
+			else {
+				cls.load("/tmp/senti.arff");
+			}
 
 			System.out.println("----------------------------------------");
 
@@ -92,20 +100,26 @@ public class TwitterExample {
 			if(args.length > 0) search = args[0];
 			else {
 				logger.warn("no search term given, executing default search");
-				search = "@comcast";
+				search = "comcast";
 			}
 
 			Query query = new Query(search);
+			query.setLang("en");
 
 			try {
 				// obtain oauth2 bearer token
 				twitter.getOAuth2Token();
 
+				int qcount = 0;
 				// execute query and print results
 				QueryResult result = twitter.search(query);
-				for (Status status : result.getTweets()) {
-					logger.info("@" + status.getUser().getScreenName() + ":"
-							+ status.getText());
+				while(qcount < 5 && result != null) {
+					for (Status status : result.getTweets()) {
+						logger.info("@" + status.getUser().getScreenName() + ":"
+								+ status.getText());
+					}
+					qcount++;
+					result.nextQuery();
 				}
 
 				// classify the results

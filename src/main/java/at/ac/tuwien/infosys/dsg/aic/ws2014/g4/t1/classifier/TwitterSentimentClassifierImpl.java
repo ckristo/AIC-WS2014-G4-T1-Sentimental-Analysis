@@ -1,12 +1,13 @@
 package at.ac.tuwien.infosys.dsg.aic.ws2014.g4.t1.classifier;
 
+import java.io.File;
+import java.io.IOException;
 import java.util.*;
 
 import at.ac.tuwien.infosys.dsg.aic.ws2014.g4.t1.preprocessing.IPreprocessor;
 import at.ac.tuwien.infosys.dsg.aic.ws2014.g4.t1.preprocessing.ITokenizer;
 import at.ac.tuwien.infosys.dsg.aic.ws2014.g4.t1.preprocessing.PreprocessorImpl;
 import at.ac.tuwien.infosys.dsg.aic.ws2014.g4.t1.preprocessing.TokenizerImpl;
-import edu.berkeley.nlp.util.StringUtils;
 import twitter4j.Status;
 
 import weka.classifiers.Classifier;
@@ -15,6 +16,8 @@ import weka.classifiers.lazy.IBk;
 import weka.core.*;
 import weka.classifiers.Evaluation;
 import weka.classifiers.functions.LibSVM;
+import weka.core.converters.ArffLoader;
+import weka.core.converters.ArffSaver;
 
 /**
  * Class implementing our custom Twitter sentiment detection classifier.
@@ -160,6 +163,31 @@ public class TwitterSentimentClassifierImpl implements ITwitterSentimentClassifi
 		}
 
 		System.out.println(eval.toSummaryString());*/
+	}
+
+	@Override
+	public void save(String path) throws IllegalStateException, IOException {
+		ArffSaver saver = new ArffSaver();
+		saver.setInstances(ts);
+		saver.setFile(new File(path));
+		saver.writeBatch();
+	}
+
+	@Override
+	public void load(String path) throws IOException, ClassifierException {
+		ArffLoader loader = new ArffLoader();
+		loader.setFile(new File(path));
+		ts = loader.getDataSet();
+		ts.setClassIndex(0);
+
+		attrSentiment = ts.attribute(0);
+
+		cls = new IBk();
+		try {
+			cls.buildClassifier(ts);
+		} catch(Exception e) {
+			throw new ClassifierException(e);
+		}
 	}
 
 	@Override

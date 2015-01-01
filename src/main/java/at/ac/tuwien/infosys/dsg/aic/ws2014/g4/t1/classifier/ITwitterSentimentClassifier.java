@@ -1,8 +1,10 @@
 package at.ac.tuwien.infosys.dsg.aic.ws2014.g4.t1.classifier;
 
+import java.io.IOException;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+
 import twitter4j.Status;
 
 /**
@@ -36,7 +38,22 @@ public interface ITwitterSentimentClassifier {
 	 * @throws ClassifierException
 	 */
 	public void train() throws ClassifierException;
-	
+
+	/**
+	 * Saves the training dataset to a file.
+	 * @param path the file path to write the data to
+	 * @throws IllegalStateException if the dataset does not exist
+	 * @throws IOException if an error occured while writing
+	 */
+	public void save(String path) throws IllegalStateException, IOException;
+
+	/**
+	 * Loads a training dataset from a file.
+	 * @param path the file path to load from
+	 * @throws IOException if an error occured while reading
+	 */
+	void load(String path) throws IOException, ClassifierException;
+
 	/**
 	 * Determines the sentiment of a tweet.
 	 * @param tweet the Twitter4J status object to classify.
