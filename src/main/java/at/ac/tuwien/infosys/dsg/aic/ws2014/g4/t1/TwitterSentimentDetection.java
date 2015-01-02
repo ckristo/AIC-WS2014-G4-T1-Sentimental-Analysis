@@ -23,14 +23,13 @@ public class TwitterSentimentDetection {
 		String cmd = "";
 		ITwitterSentimentClassifier classifier = new TwitterSentimentClassifierImpl();
 		ArrayList<Status> tweets = new ArrayList<Status>();
-		Collection<Double[]> sentiments = new HashSet<>();
 		String searchTerm = "";
 		BufferedReader in = new BufferedReader(new InputStreamReader(System.in));
 		System.out.println("************************************");
 		System.out.println("* Twitter Sentiment Detection v1.0 *");
 		printCmds();
-        
-        int tweetCount = 0;
+
+		int tweetCount = 0;
 
 		while (true) {
 			System.out.print("*:> ");
@@ -50,7 +49,10 @@ public class TwitterSentimentDetection {
 				} else {
 					System.out.println("*:> Training Data...");
 					String[] arg = { line.split(" ")[1] };
-					Sentiment140TrainClassifier.main(arg);
+					classifier = Sentiment140TrainClassifier.main(arg);
+					if(classifier == null) {
+						break;
+					}
 				}
 			}
 
@@ -62,7 +64,7 @@ public class TwitterSentimentDetection {
 				} else {
 					System.out.println("*:> Downloading Tweets...");
 					searchTerm = line.split(" ")[2];
-                    tweetCount = Integer.valueOf(line.split(" ")[1]);
+					tweetCount = Integer.valueOf(line.split(" ")[1]);
 					tweets = getTweets(tweetCount, searchTerm);
 				}
 			}
@@ -74,26 +76,20 @@ public class TwitterSentimentDetection {
 				} else
 					System.out.println("*:> Classifying Tweets...");
 				try {
-					sentiments = classifier.classify(tweets).values();
+					Collection<Double> sentiments = classifier.classify(tweets).values();
+
+					double sentSum = 0.0;
+					for (Double s : sentiments) {
+						sentSum += s;
+					}
+					sentSum /= tweetCount;
+
+					System.out.format("*:> successfully classified %d tweets for searchterm '%s'%n", tweetCount, searchTerm);
+					System.out.format("- sentiment: %.2f%n", sentSum);
 				} catch (Exception e) {
 					error("Classifier stopped!");
 					e.printStackTrace();
 				}
-                
-                Double[] sentSum = new Double[] {0.0d, 0.0d, 0.0d};
-				for (Double[] s : sentiments) {
-					sentSum[0] += s[0];
-                    sentSum[1] += s[1];
-                    sentSum[2] += s[2];
-				}
-				
-                sentSum[0] /= tweetCount;
-                sentSum[1] /= tweetCount;
-                sentSum[2] /= tweetCount;
-
-				System.out.format("*:> successfully classified %d tweets for searchterm '%s'%n", tweetCount, searchTerm);
-				System.out.format("- negative: %.2f%n", sentSum[0]);
-                System.out.format("- positive: %.2f%n", sentSum[2]);
 			}
 
 			else if (cmd.equals("exit")) {
@@ -101,7 +97,7 @@ public class TwitterSentimentDetection {
 			}
 
 			else {
-				error(" Unknownd command: " + cmd);
+				error(" Unknown command: " + cmd);
 				printCmds();
 			}
 		}
@@ -139,7 +135,7 @@ public class TwitterSentimentDetection {
 		System.out.println("************************************");
 		System.out.println("* Commands                         *");
 		System.out.println("*                                  *");
-		//System.out.println("* train [file]                     *");
+		System.out.println("* train [file]                     *");
 		System.out.println("* gettweets [number] [searchWord]  *");
 		System.out.println("* classify                         *");
 		System.out.println("* exit                             *");

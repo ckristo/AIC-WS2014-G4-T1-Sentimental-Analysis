@@ -22,11 +22,9 @@
 				<groupId>org.codehaus.mojo</groupId>
 				<artifactId>exec-maven-plugin</artifactId>
 				<version>1.2.1</version>
-				<!--
 				<configuration>
-					<mainClass>at.ac.tuwien.infosys.dsg.aic.ws2014.g4.t1.TwitterExample</mainClass>
+					<mainClass>at.ac.tuwien.infosys.dsg.aic.ws2014.g4.t1.TwitterSentimentDetection</mainClass>
 				</configuration>
-				-->
 			</plugin>
 		</plugins>
 	</build>

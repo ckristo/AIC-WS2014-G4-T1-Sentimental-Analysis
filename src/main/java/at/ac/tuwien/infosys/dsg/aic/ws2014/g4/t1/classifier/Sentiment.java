@@ -9,11 +9,17 @@ public enum Sentiment {
 		public String toString() {
 			return "positive";
 		}
+		public Double toDouble() {
+			return 1.0;
+		}
 	},
 	NEGATIVE {
 		@Override
 		public String toString() {
 			return "negative";
+		}
+		public Double toDouble() {
+			return 0.0;
 		}
 	},
 	NEUTRAL {
@@ -21,5 +27,10 @@ public enum Sentiment {
 		public String toString() {
 			return "neutral";
 		}
-	},
+		public Double toDouble() {
+			return 0.5;
+		}
+	};
+
+	abstract public Double toDouble();
 }

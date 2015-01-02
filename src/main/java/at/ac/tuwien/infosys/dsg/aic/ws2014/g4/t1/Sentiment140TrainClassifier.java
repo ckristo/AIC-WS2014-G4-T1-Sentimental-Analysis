@@ -1,9 +1,7 @@
 package at.ac.tuwien.infosys.dsg.aic.ws2014.g4.t1;
 
-import at.ac.tuwien.infosys.dsg.aic.ws2014.g4.t1.classifier.ClassifierException;
-import at.ac.tuwien.infosys.dsg.aic.ws2014.g4.t1.classifier.ITwitterSentimentClassifier;
-import at.ac.tuwien.infosys.dsg.aic.ws2014.g4.t1.classifier.Sentiment;
-import at.ac.tuwien.infosys.dsg.aic.ws2014.g4.t1.classifier.TwitterSentimentClassifierImpl;
+import at.ac.tuwien.infosys.dsg.aic.ws2014.g4.t1.classifier.*;
+
 import java.io.BufferedInputStream;
 import java.io.File;
 import java.io.FileInputStream;
@@ -11,7 +9,10 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
+
+import at.ac.tuwien.infosys.dsg.aic.ws2014.g4.t1.helper.Config;
 import org.apache.commons.compress.compressors.bzip2.BZip2CompressorInputStream;
 import org.apache.commons.csv.CSVFormat;
 import org.apache.commons.csv.CSVParser;
@@ -26,92 +27,92 @@ import twitter4j.TwitterObjectFactory;
 
 /**
  * Performs training of the classifier based on the Sentiment140 training data.
- * @see http://help.sentiment140.com/for-students/
+ * @see {@ http://help.sentiment140.com/for-students/}
  */
 public class Sentiment140TrainClassifier {
-	
+
 	/**
 	 * Exit value in case of error.
 	 */
 	private static final int EXIT_ERROR = 1;
-	
+
 	/**
 	 * Exit value in case of a successful run.
 	 */
 	private static final int EXIT_SUCCESS = 0;
-	
+
 	/**
 	 * Sentiment value for positive sentiment.
 	 */
 	private static final int POLARITY_POSITIVE = 4;
-	
+
 	/**
 	 * Sentiment value for negative sentiment.
 	 */
 	private static final int POLARITY_NEGATIVE = 0;
-	
+
 	/**
 	 * Sentiment value for neutral sentiment.
 	 */
 	private static final int POLARITY_NEUTRAL = 2;
-	
+
 	/**
 	 * The CSV row that contains the polarity value.
 	 */
 	private static final int ROW_POLARITY = 0;
-	
+
 	/**
 	 * The CSV row that contains the Tweet's ID.
 	 */
 	private static final int ROW_ID = 1;
-	
+
 	/**
 	 * The CSV row that contains the Tweet's text.
 	 */
 	private static final int ROW_TEXT = 5;
-	
+
 	/**
 	 * The max. number of elements to put into the training set per class.
 	 */
-	private static final int LIMIT_PER_CLASS = 50000;
-	
+	private static final int LIMIT_PER_CLASS = 1000;
+
 	/**
 	 * Logger.
 	 */
 	private static final Logger logger = LogManager.getLogger("Sentiment140TrainClassifier");
-	
+
 	/**
 	 * Prints usage message to stdout.
 	 */
 	public static void usage() {
 		System.out.println("Sentiment140TrainClassifier <bzipped-csv-file>");
 	}
-	
+
 	// TODO: test classifier performance: http://weka.wikispaces.com/Use+WEKA+in+your+Java+code#Classification-Evaluating
-	
+
 	/**
 	 * main()
 	 * @param args the arguments
 	 */
-	public static void main(String[] args) {
+	public static ITwitterSentimentClassifier main(String[] args) {
 		// check arguments
 		if (args.length == 0) {
 			System.err.println("Missing argument <bzipped-csv-file>");
 			usage();
-			System.exit(EXIT_ERROR);
+			return null;
 		} else if (args.length > 1) {
 			System.err.println("Too much arguments");
 			usage();
-			System.exit(EXIT_ERROR);
+			return null;
 		}
-		
+
 		// check if file exists
 		File inFile = new File(args[0]);
 		if (!inFile.exists()) {
 			System.err.println("Given <bzipped-csv-file> doesn't exist");
-			System.exit(EXIT_ERROR);
+			return null;
 		}
-		
+
 		// read training set data from given file
 		Map<Status, Sentiment> trainingSet = null;
 		try {
@@ -119,22 +120,32 @@ public class Sentiment140TrainClassifier {
 			trainingSet = readTrainingSet(inFile);
 		} catch (IOException ex) {
 			System.err.println("Couldn't read given <bzipped-csv-file>");
-			System.exit(EXIT_ERROR);
+			return null;
 		}
-		
+
 		// create and train classifier
 		ITwitterSentimentClassifier classifier = new TwitterSentimentClassifierImpl();
 		try {
-			classifier.train(trainingSet);
-		} catch (ClassifierException ex) {
-			logger.error("Couldn't train classifier.", ex);
+			try {
+				classifier.load();
+			} catch(IOException e) {
+				List<SentiData> sentidata = SentiWordNet.readFile("SentiWordNet.txt");
+				classifier.addSentiData(sentidata);
+				classifier.addSentiments(trainingSet);
+				classifier.train();
+				if (Config.getInstance().getExportTrainedClassifierToFile()) {
+					classifier.save();
+				}
+			}
+		} catch(ClassifierException | IOException e) {
+			logger.error("Couldn't train classifier.", e);
 			System.err.println("Classifier couldn't be trained");
-			System.exit(EXIT_ERROR);
+			return null;
 		}
-		
-		System.exit(EXIT_SUCCESS);
+
+		return classifier;
 	}
-	
+
 	/**
 	 * Read training set from a BZIP2-compressed file.
 	 * @param file the file to read from
@@ -152,7 +163,7 @@ public class Sentiment140TrainClassifier {
 			logger.error("Couldn't create input stream for bzipped CSV file.", ex);
 			throw ex;
 		}
-		
+
 		// parse the CSV file
 		CSVParser csvParser = null;
 		try {
@@ -161,11 +172,11 @@ public class Sentiment140TrainClassifier {
 			logger.error("Couldn't create CSV parser.", ex);
 			throw ex;
 		}
-		
+
 		Map<Status, Sentiment> trainingSet = new HashMap<>();
-		
+
 		int numNegative = 0, numNeutral = 0, numPositive = 0;
-		
+
 		for(CSVRecord record : csvParser) {
 			int polarity;
 			try {
@@ -174,16 +185,16 @@ public class Sentiment140TrainClassifier {
 				logger.warn("Read polarity is not a valid number for record #"+record.getRecordNumber(), ex);
 				continue;
 			}
-			
+
 			// map polarity of input to a sentiment class
 			Sentiment sent = mapPolarityToSentiment(polarity);
 			if (sent == null) {
 				logger.warn("Read polarity is not a known polarity value for record #"+record.getRecordNumber());
 				continue;
 			}
-			
+
 			// FIXME: refactor code to be independant to the number of classes
-			
+
 			// check if we reached the limit for at least one class
 			boolean classLimitReached = false;
 			// - negative
@@ -210,38 +221,38 @@ public class Sentiment140TrainClassifier {
 					classLimitReached = true;
 				}
 			}
-			
+
 			// stop after limits for each class is reached
-			if (numNegative == LIMIT_PER_CLASS 
-					&& numNeutral == LIMIT_PER_CLASS 
+			if (numNegative == LIMIT_PER_CLASS
+					&& numNeutral == LIMIT_PER_CLASS
 					&& numPositive == LIMIT_PER_CLASS) {
 				logger.debug("Limit for all classes reached, stop collecting training data");
 				break;
 			}
-			
+
 			// do not add element if limit for the class is reached
 			if (classLimitReached) {
 				//logger.debug("Limit for class "+sent+" reached");
 				continue;
 			}
-			
+
 			// create JSON string and let Twitter4J generate a Status object
 			Status status = createStatusObject(record);
 			if (status == null) {
-				logger.warn("Coudln't create status object for record #"+record.getRecordNumber());
+				logger.warn("Couldn't create status object for record #"+record.getRecordNumber());
 				continue;
 			}
-			
+
 			logger.debug("Put new "+sent+" entry into training set");
-			
+
 			trainingSet.put(status, sent);
 		}
-		
+
 		csvParser.close();
-		
+
 		return trainingSet;
 	}
-	
+
 	/**
 	 * Returns the sentiment for a given polarity value.
 	 * @param polarity the polarity value to map

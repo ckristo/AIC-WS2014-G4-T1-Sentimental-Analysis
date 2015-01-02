@@ -53,7 +53,8 @@ public class ClassifierTest {
 		testData.put(status4, Sentiment.NEGATIVE);
 		testData.put(status5, Sentiment.NEUTRAL);
 		testData.put(status6, Sentiment.NEUTRAL);
-		classifier.train(testData);
+		classifier.addSentiments(testData);
+		classifier.train();
 	}
 	
 }
