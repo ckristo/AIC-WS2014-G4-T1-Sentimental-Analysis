@@ -1,35 +1,23 @@
 package at.ac.tuwien.infosys.dsg.aic.ws2014.g4.t1.classifier;
 
 import at.ac.tuwien.infosys.dsg.aic.ws2014.g4.t1.helper.Config;
-import java.io.File;
-import java.io.IOException;
-import java.util.*;
-
 import at.ac.tuwien.infosys.dsg.aic.ws2014.g4.t1.preprocessing.IPreprocessor;
 import at.ac.tuwien.infosys.dsg.aic.ws2014.g4.t1.preprocessing.ITokenizer;
 import at.ac.tuwien.infosys.dsg.aic.ws2014.g4.t1.preprocessing.PreprocessorImpl;
 import at.ac.tuwien.infosys.dsg.aic.ws2014.g4.t1.preprocessing.TokenizerImpl;
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileOutputStream;
-import java.io.IOException;
-import java.io.ObjectInputStream;
-import java.io.ObjectOutputStream;
-import org.apache.commons.lang.ArrayUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import twitter4j.Status;
 import weka.classifiers.Classifier;
-import weka.classifiers.functions.SMO;
-import weka.core.*;
-import weka.classifiers.bayes.NaiveBayes;
 import weka.classifiers.lazy.IBk;
 import weka.core.*;
-import weka.classifiers.Evaluation;
-import weka.classifiers.functions.LibSVM;
 import weka.core.converters.ArffLoader;
 import weka.core.converters.ArffSaver;
+
+import java.io.File;
+import java.io.IOException;
+import java.util.*;
 
 /**
  * Class implementing our custom Twitter sentiment detection classifier.
@@ -75,6 +63,11 @@ public class TwitterSentimentClassifierImpl implements ITwitterSentimentClassifi
 	 * The Weka classifier used for sentiment classification.
 	 */
 	private Classifier cls = null;
+
+	/**
+	 * The class of the classifier.
+	 */
+	private Class<? extends Classifier> clsType = IBk.class;
 
 	/**
 	 * Constructor.
@@ -299,8 +292,8 @@ public class TwitterSentimentClassifierImpl implements ITwitterSentimentClassifi
 
 		System.out.println("building classifier...");
 
-		cls = new IBk();
 		try {
+			cls = clsType.newInstance();
 			cls.buildClassifier(ts);
 		} catch(Exception e) {
 			throw new ClassifierException(e);
@@ -347,8 +340,8 @@ public class TwitterSentimentClassifierImpl implements ITwitterSentimentClassifi
 
 		attrSentiment = ts.attribute(0);
 
-		cls = new IBk();
 		try {
+			cls = clsType.newInstance();
 			cls.buildClassifier(ts);
 		} catch(Exception e) {
 			throw new ClassifierException(e);
