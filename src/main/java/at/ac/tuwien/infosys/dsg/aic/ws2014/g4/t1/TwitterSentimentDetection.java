@@ -40,6 +40,10 @@ public class TwitterSentimentDetection {
 				printCmds();
 			}
 
+			if(line == null) {
+				break;
+			}
+
 			cmd = line.split(" ")[0];
 
 			if (cmd.equals("train")) {
