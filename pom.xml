@@ -42,6 +42,15 @@
 					<target>1.7</target>
 				</configuration>
 			</plugin>
+			<plugin>
+				<artifactId>maven-compiler-plugin</artifactId>
+			</plugin>
+			<plugin>
+				<artifactId>maven-source-plugin</artifactId>
+			</plugin>
+			<plugin>
+				<artifactId>maven-war-plugin</artifactId>
+			</plugin>
 		</plugins>
 	</build>
 
@@ -118,6 +127,7 @@
 			<artifactId>cxf-rt-transports-http-jetty</artifactId>
 			<version>${cxf.version}</version>
 		</dependency>
+		
 
 		<!-- <dependency> <groupId>com.facebook.thirdparty</groupId> <artifactId>libsvm</artifactId> 
 			<version>3.18.1</version> </dependency> -->
