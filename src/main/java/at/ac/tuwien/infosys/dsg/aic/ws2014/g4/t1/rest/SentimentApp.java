@@ -8,9 +8,9 @@ import javax.ws.rs.core.Application;
 public class SentimentApp extends Application {
 
 	public Set<Class<?>> getClasses() {
-        Set<Class<?>> classes = new HashSet<Class<?>>();
-        classes.add(SentimentImpl.class);
+		Set<Class<?>> classes = new HashSet<Class<?>>();
+		classes.add(SentimentImpl.class);
 
-        return classes;
-    }
+		return classes;
+	}
 }
