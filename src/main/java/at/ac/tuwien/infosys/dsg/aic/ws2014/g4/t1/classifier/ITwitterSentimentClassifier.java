@@ -21,16 +21,6 @@ public interface ITwitterSentimentClassifier {
 	 */
 	public void addTrainingData(Map<Status,Double> trainingSet) throws IllegalStateException;
 
-	/**
-	 * Adds the given training set (consisting of strings and corresponding
-	 * sentiment values, where 0 is negative and 1 is positive) to the
-	 * classifier.
-	 * @param trainingSet the labeled training data for the classifier
-	 * @throws java.lang.IllegalStateException if the classifier was already
-	 * built (i.e. {@link #train()} was called)
-	 */
-	public void addTrainingWords(Map<String,Double> trainingSet) throws IllegalStateException;
-
 	public void addSentiData(List<SentiData> trainingData) throws IllegalStateException;
 
 	public void addSentiments(Map<Status, Sentiment> trainingSet) throws IllegalStateException;

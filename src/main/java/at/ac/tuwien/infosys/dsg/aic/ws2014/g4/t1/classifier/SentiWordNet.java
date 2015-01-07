@@ -46,9 +46,4 @@ public class SentiWordNet {
 		logger.info("successfully loaded SentiWordNet dataset "+path);
 		return ds;
 	}
-
-
 }
-
-
-
