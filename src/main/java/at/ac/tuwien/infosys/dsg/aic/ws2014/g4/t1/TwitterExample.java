@@ -3,6 +3,8 @@ package at.ac.tuwien.infosys.dsg.aic.ws2014.g4.t1;
 import at.ac.tuwien.infosys.dsg.aic.ws2014.g4.t1.classifier.ClassifierException;
 import at.ac.tuwien.infosys.dsg.aic.ws2014.g4.t1.classifier.ITwitterSentimentClassifier;
 import at.ac.tuwien.infosys.dsg.aic.ws2014.g4.t1.classifier.TwitterSentimentClassifierImpl;
+import at.ac.tuwien.infosys.dsg.aic.ws2014.g4.t1.helper.ApplicationConfig;
+import at.ac.tuwien.infosys.dsg.aic.ws2014.g4.t1.helper.Constants;
 import java.io.BufferedInputStream;
 import java.io.FileInputStream;
 import java.io.IOException;
@@ -29,8 +31,6 @@ public class TwitterExample {
 
 	public static void main(String[] args) {
 		
-		ITwitterSentimentClassifier classifier = new TwitterSentimentClassifierImpl();
-
 		/**
 		 * EXAMPLE CODE for using the Twitter Search API --
 		 * https://dev.twitter.com/rest/public/search
@@ -48,9 +48,8 @@ public class TwitterExample {
 			for (Status status : result.getTweets()) {
 				System.out.println("@" + status.getUser().getScreenName() + ":"
 						+ status.getText());
-				System.out.println(classifier.classify(status));
 			}
-		} catch (TwitterException | ClassifierException e) {
+		} catch (TwitterException e) {
 			e.printStackTrace();
 		}
 		

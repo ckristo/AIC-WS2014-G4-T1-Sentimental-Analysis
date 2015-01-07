@@ -20,9 +20,11 @@ public class TwitterSentimentDetection {
 
 	public static void main(String[] args) {
 		String line = "";
-		String cmd = "";
+		String cmd;
+		
 		ITwitterSentimentClassifier classifier = new TwitterSentimentClassifierImpl();
-		ArrayList<Status> tweets = new ArrayList<Status>();
+		
+		ArrayList<Status> tweets = new ArrayList<>();
 		Collection<Double[]> sentiments = new HashSet<>();
 		String searchTerm = "";
 		BufferedReader in = new BufferedReader(new InputStreamReader(System.in));

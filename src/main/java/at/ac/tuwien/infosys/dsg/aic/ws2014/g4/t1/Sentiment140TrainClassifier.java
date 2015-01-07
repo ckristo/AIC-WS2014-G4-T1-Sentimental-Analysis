@@ -4,6 +4,8 @@ import at.ac.tuwien.infosys.dsg.aic.ws2014.g4.t1.classifier.ClassifierException;
 import at.ac.tuwien.infosys.dsg.aic.ws2014.g4.t1.classifier.ITwitterSentimentClassifier;
 import at.ac.tuwien.infosys.dsg.aic.ws2014.g4.t1.classifier.Sentiment;
 import at.ac.tuwien.infosys.dsg.aic.ws2014.g4.t1.classifier.TwitterSentimentClassifierImpl;
+import at.ac.tuwien.infosys.dsg.aic.ws2014.g4.t1.helper.ApplicationConfig;
+import at.ac.tuwien.infosys.dsg.aic.ws2014.g4.t1.helper.Constants;
 import java.io.BufferedInputStream;
 import java.io.File;
 import java.io.FileInputStream;
@@ -122,8 +124,18 @@ public class Sentiment140TrainClassifier {
 			System.exit(EXIT_ERROR);
 		}
 		
+		ApplicationConfig config = null;
+		try {
+			InputStream is = Sentiment140TrainClassifier.class.getResourceAsStream(Constants.DEFAULT_CONFIG_FILE_RESOURCE);
+			config = new ApplicationConfig(is);
+		} catch (IOException ex) {
+			logger.error("Couldn't load application configuration file", ex);
+			System.err.println("Couldn't create classifier -- configuration file couldn't be read");
+			System.exit(EXIT_ERROR);
+		}
+		
 		// create and train classifier
-		ITwitterSentimentClassifier classifier = new TwitterSentimentClassifierImpl();
+		ITwitterSentimentClassifier classifier = new TwitterSentimentClassifierImpl(config);
 		try {
 			classifier.train(trainingSet);
 		} catch (ClassifierException ex) {

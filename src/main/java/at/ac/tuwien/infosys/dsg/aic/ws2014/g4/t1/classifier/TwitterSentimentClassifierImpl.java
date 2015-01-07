@@ -1,6 +1,6 @@
 package at.ac.tuwien.infosys.dsg.aic.ws2014.g4.t1.classifier;
 
-import at.ac.tuwien.infosys.dsg.aic.ws2014.g4.t1.helper.Config;
+import at.ac.tuwien.infosys.dsg.aic.ws2014.g4.t1.helper.ApplicationConfig;
 import java.util.*;
 
 import at.ac.tuwien.infosys.dsg.aic.ws2014.g4.t1.preprocessing.IPreprocessor;
@@ -18,8 +18,10 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import twitter4j.Status;
 import weka.classifiers.Classifier;
+import weka.classifiers.bayes.NaiveBayes;
 import weka.classifiers.functions.SMO;
 import weka.core.*;
+import weka.core.converters.ArffSaver;
 
 /**
  * Class implementing our custom Twitter sentiment detection classifier.
@@ -34,22 +36,42 @@ public class TwitterSentimentClassifierImpl implements ITwitterSentimentClassifi
 	/**
 	 * The classifier name.
 	 */
-	private final String CLASSIFIER_NAME;
+	private final String classifierName;
+	
+	/**
+	 * The classifier type.
+	 */
+	private final Class<?> classifierType;
 	
 	/**
 	 * Indicator whether to export the trained classifier to a file.
 	 */
-	private final boolean EXPORT_TRAINED_CLASSIFIER;
+	private boolean exportTrainedClassifier = false;
+	
+	/**
+	 * Indicator whether to import the trained classifier from a file.
+	 */
+	private boolean importTrainedClassifier = false;
+	
+	/**
+	 * Indicator whether to export the training data to an ARFF file.
+	 */
+	private boolean exportTrainingData = false;
 	
 	/**
 	 * The export file path for the attributes data.
 	 */
-	private final String OUTPUT_FILEPATH_ATTRIBUTES;
+	private File attributesOutputFile = null;
 	
 	/**
 	 * The export file path for the classifier data.
 	 */
-	private final String OUTPUT_FILEPATH_CLASSIFIER;
+	private File classifierOutputFile = null;
+	
+	/**
+	 * The export file path for the training data.
+	 */
+	private File trainingDataOutputFile = null;
 	
 	/**
 	 * Tokenizer used for Tweet processing.
@@ -64,7 +86,7 @@ public class TwitterSentimentClassifierImpl implements ITwitterSentimentClassifi
 	/**
 	 * A set with all word attributes used by the Weka classifier.
 	 */
-	private FastVector attributes;
+	private FastVector attributes = null;
 	
 	/**
 	 * The Weka classifier used for sentiment classification.
@@ -72,30 +94,48 @@ public class TwitterSentimentClassifierImpl implements ITwitterSentimentClassifi
 	private Classifier classifier = null;
 	
 	/**
-	 * Constructor.
+	 * Creates a twitter sentiment classifier with defaults:
+	 * - uses SMO as Machine Learning approach
+	 * - doesn't export training data or the trained classifier
 	 */
 	public TwitterSentimentClassifierImpl() {
-		Config config = Config.getInstance();
-		
-		String classifierName = config.getClassifierName();
-		if (classifierName == null) {
-			String defaultName = getClass().getName();
-			logger.warn("Classifier name not specified in the configuration file -- setting to '"+defaultName+"'");
-			CLASSIFIER_NAME = defaultName;
+		classifierName = getClass().getName();
+		classifierType = SMO.class;
+	}
+	
+	/**
+	 * Constructor.
+	 * @param config the application configuration to use for setup the classifier.
+	 */
+	public TwitterSentimentClassifierImpl(ApplicationConfig config) {
+		if (config.getClassifierName() == null) {
+			classifierName = getClass().getName();
+			logger.warn("Classifier name not specified in the configuration file -- setting to '"+getClass().getName()+"'");
 		} else {
-			CLASSIFIER_NAME = classifierName;
+			classifierName = config.getClassifierName();
 		}
 		
-		EXPORT_TRAINED_CLASSIFIER = config.getExportTrainedClassifierToFile();
-		if (EXPORT_TRAINED_CLASSIFIER) {
-			String outputFilename = config.getClassifierOutputDirectory()
-					+ File.separator 
-					+ CLASSIFIER_NAME;
-			OUTPUT_FILEPATH_ATTRIBUTES = outputFilename + ".attributes";
-			OUTPUT_FILEPATH_CLASSIFIER = outputFilename + ".classifier";
+		classifierType = config.getClassifierType();
+		
+		String exportPath = config.getClassifierOutputDirectory() + File.separator;
+		
+		exportTrainedClassifier = config.getExportTrainedClassifierToFile();
+		if (exportTrainedClassifier) {
+			String outputFilename = exportPath + classifierName + "-" + classifierType.getName();
+			attributesOutputFile = new File(outputFilename + ".attributes");
+			classifierOutputFile = new File(outputFilename + ".classifier");
 		} else {
-			OUTPUT_FILEPATH_ATTRIBUTES = null;
-			OUTPUT_FILEPATH_CLASSIFIER = null;
+			attributesOutputFile = null;
+			classifierOutputFile = null;
+		}
+		
+		importTrainedClassifier = config.getImportTrainedClassifierToFile();
+		
+		exportTrainingData = config.getExportTrainingDataToArffFile();
+		if (exportTrainingData) {
+			trainingDataOutputFile = new File(exportPath + "trainingdata.arff");
+		} else {
+			trainingDataOutputFile = null;
 		}
 	}
 	
@@ -131,7 +171,7 @@ public class TwitterSentimentClassifierImpl implements ITwitterSentimentClassifi
 		
 		// NOTE: do not alter attributes after the next step!
 		
-		Instances trainingData = new Instances(CLASSIFIER_NAME, wekaAttrs, 100);
+		Instances trainingData = new Instances(classifierName, wekaAttrs, 100);
 		trainingData.setClass(classAttr);
 		
 		double[] zeros = new double[trainingData.numAttributes()];
@@ -165,26 +205,39 @@ public class TwitterSentimentClassifierImpl implements ITwitterSentimentClassifi
 			throw new ClassifierException("Failed on building the classifier", ex);
 		}
 		
-		// export trained classifier
-		if (EXPORT_TRAINED_CLASSIFIER) {
+		// export training data
+		if (exportTrainingData) {
 			try {
-				writeAttributesDataToFile();
+				exportInstancesToArffFile(trainingData, trainingDataOutputFile);
 			} catch (IOException ex) {
 				logger.warn("Couldn't write attributes to file.", ex);
 			}
+		}
+		
+		// export trained classifier
+		if (exportTrainedClassifier) {
 			try {
-				writeClassifierToFile();
+				exportObject(attributes, attributesOutputFile);
+				exportObject(classifier, classifierOutputFile);
 			} catch (IOException ex) {
-				logger.warn("Couldn't write trained classifier to file.", ex);
+				logger.warn("Couldn't export attributes and trained classifier to files.", ex);
 			}
 		}
 	}
 	
 	@Override
-	public Double[] classify(Status tweet) throws IllegalStateException, ClassifierException {
-		tryRestoringTrainedClassifier();
-		
+	public boolean isTrained() {
 		if (classifier == null) {
+			if (importTrainedClassifier) {
+				tryRestoringTrainedClassifier();
+			}
+		}
+		return (classifier != null);
+	}
+	
+	@Override
+	public Double[] classify(Status tweet) throws IllegalStateException, ClassifierException {
+		if (!isTrained()) {
 			throw new IllegalStateException("classifier hasn't been trained yet");
 		}
 		
@@ -198,7 +251,7 @@ public class TwitterSentimentClassifierImpl implements ITwitterSentimentClassifi
 		// set all attributes to zero
 		wekaAttrs.appendElements(attributes);
 		
-		Instances testData = new Instances(CLASSIFIER_NAME, wekaAttrs, 100);
+		Instances testData = new Instances(classifierName, wekaAttrs, 100);
 		testData.setClass(classAttr);
 		
 		SparseInstance inst = new SparseInstance(testData.numAttributes());
@@ -260,59 +313,58 @@ public class TwitterSentimentClassifierImpl implements ITwitterSentimentClassifi
 	}
 	
 	/**
-	 * Creates all necessary, non-existing directories for a given file path.
-	 * @param path the file path
+	 * Creates a directory path if it doesn't exist yet.
+	 * @param path the directory path
+	 * @throws IllegalArgumentException if the path doesn't point to a directory
+	 * @throws IOException if the path doesn't exist but couldn't be created
 	 */
-	private void createDirectory(String path) {
-		File parent = new File(path).getParentFile();
-		if (!parent.exists()) {
-			if (!parent.mkdirs()) {
-				logger.warn("Couldn't create parent directories for path '"+path+"'");
+	private void createDirectoryPath(File path) throws IOException {
+		if (!path.exists()) {
+			if (!path.mkdirs()) {
+				throw new IOException("Couldn't create directory path '"+path.getPath()+"'");
 			}
 		}
 	}
 	
 	/**
-	 * Write training set to file.
+	 * Exports an instances object to an ARFF file.
+	 * @param instances the instances to export
+	 * @param out the output file -- will be overwritten if it exists already!
 	 */
-	private void writeAttributesDataToFile() throws IOException {
-		createDirectory(OUTPUT_FILEPATH_ATTRIBUTES);
-		try (ObjectOutputStream modelOutStream = new ObjectOutputStream(new FileOutputStream(OUTPUT_FILEPATH_ATTRIBUTES))) {
-			modelOutStream.writeObject(attributes);
+	private void exportInstancesToArffFile(Instances instances, File out) throws IOException {
+		createDirectoryPath(out.getParentFile());
+		
+		ArffSaver arffSaver = new ArffSaver();
+		arffSaver.setInstances(instances);
+		arffSaver.setFile(out);
+		arffSaver.writeBatch();
+	}
+	
+	/**
+	 * Exports an object to a file.
+	 * @param obj the object to export
+	 * @param out the output file -- will be overwritten if it exists already!
+	 * @throws IOException 
+	 */
+	private void exportObject(Object obj, File out) throws IOException {
+		createDirectoryPath(out.getParentFile());
+		try (ObjectOutputStream modelOutStream = new ObjectOutputStream(new FileOutputStream(out))) {
+			modelOutStream.writeObject(obj);
 		}
 	}
 	
 	/**
-	 * Write trained classifier to file.
-	 */
-	private void writeClassifierToFile() throws IOException {
-		createDirectory(OUTPUT_FILEPATH_CLASSIFIER);
-		try (ObjectOutputStream modelOutStream = new ObjectOutputStream(new FileOutputStream(OUTPUT_FILEPATH_CLASSIFIER))) {
-			modelOutStream.writeObject(classifier);
-		}
-	}
-	
-	/**
-	 * Read test data from from file.
-	 * @return the read test data (instances object).
+	 * Reads an object from a file.
+	 * @param <T> the object's class
+	 * @param in the file to read
+	 * @param cls the class of the object to read
+	 * @return the read object
 	 * @throws IOException
 	 * @throws ClassNotFoundException 
 	 */
-	private FastVector readAttributesDataFromFile() throws IOException, ClassNotFoundException {
-		try (ObjectInputStream modelInStream = new ObjectInputStream(new FileInputStream(OUTPUT_FILEPATH_ATTRIBUTES))) {
-			return (FastVector) modelInStream.readObject();
-		}
-	}
-	
-	/**
-	 * Read trained classifier from file.
-	 * @return the read classifier object.
-	 * @throws IOException
-	 * @throws ClassNotFoundException 
-	 */
-	private Classifier readClassifierFromFile() throws IOException, ClassNotFoundException {
-		try (ObjectInputStream modelInStream = new ObjectInputStream(new FileInputStream(OUTPUT_FILEPATH_CLASSIFIER))) {
-			return (Classifier) modelInStream.readObject();
+	private <T> T readObject(File in, Class<T> cls) throws IOException, ClassNotFoundException {
+		try (ObjectInputStream modelInStream = new ObjectInputStream(new FileInputStream(in))) {
+			return (T) modelInStream.readObject();
 		}
 	}
 	
@@ -321,20 +373,117 @@ public class TwitterSentimentClassifierImpl implements ITwitterSentimentClassifi
 	 */
 	private void tryRestoringTrainedClassifier() {
 		// try to load existing training data set
-		if (new File(OUTPUT_FILEPATH_ATTRIBUTES).exists()) {
+		if (attributesOutputFile.exists()) {
 			try {
-				attributes = readAttributesDataFromFile();
+				attributes = readObject(attributesOutputFile, FastVector.class);
 			} catch (IOException | ClassNotFoundException ex) {
-				logger.warn("Couldn't read attributes data from file.", ex);
+				logger.warn("Couldn't read attributes from prev. trained classifier from file.", ex);
 			}
 		}
 		// try to load existing trained classifier
-		if (new File(OUTPUT_FILEPATH_CLASSIFIER).exists()) {
+		if (classifierOutputFile.exists()) {
 			try {
-				classifier = readClassifierFromFile();
+				classifier = readObject(classifierOutputFile, Classifier.class);
 			} catch (IOException | ClassNotFoundException ex) {
 				logger.warn("Couldn't read prev. trained classifier from file.", ex);
 			}
 		}
 	}
+	
+	/**
+	 * Returns whether the classifier will export the classifier to files after training.
+	 * @return true if the classifier will export the classifier after training, false otherwise.
+	 */
+	public boolean getExportTrainedClassifier() {
+		return exportTrainedClassifier;
+	}
+	
+	/**
+	 * Sets the flag whether the classifier will export the classifier to files after training.
+	 * @param val the new flag value
+	 */
+	public void setExportTrainedClassifier(boolean val) {
+		exportTrainedClassifier = val;
+	}
+	
+	/**
+	 * Returns whether the classifier will import a previously trained classifier from files.
+	 * @return true if the classifier will import a previously trained classifier, false otherwise.
+	 */
+	public boolean getImportTrainedClassifier() {
+		return exportTrainedClassifier;
+	}
+	
+	/**
+	 * Sets the flag whether the classifier will import a previously trained classifier from files.
+	 * @param val the new flag value
+	 */
+	public void setImportTrainedClassifier(boolean val) {
+		exportTrainedClassifier = val;
+	}
+	
+	/**
+	 * Returns whether the classifier will export the training data to an ARFF file before training.
+	 * @return true if the classifier will export the training data before training, false otherwise.
+	 */
+	public boolean getExportTrainingData() {
+		return exportTrainingData;
+	}
+	
+	/**
+	 * Sets the flag whether the classifier will export the training data to an ARFF file before training.
+	 * @param val the new flag value
+	 */
+	public void setExportTrainingData(boolean val) {
+		exportTrainingData = val;
+	}
+	
+	/**
+	 * Returns a file object of the output file for attributes data.
+	 * @return a file object of the output file for attributes data.
+	 */
+	public File getAttributesOutputFile() {
+		return attributesOutputFile;
+	}
+	
+	/**
+	 * Sets the output file for attributes data.
+	 * @param out the new output file
+	 */
+	public void setAttributesOutputFile(File out) {
+		attributesOutputFile = out;
+	}
+	
+	/**
+	 * Returns a file object of the output file for the trained classifier.
+	 * @return a file object of the output file for the trained classifier.
+	 */
+	public File getClassifierOuptutFile() {
+		return classifierOutputFile;
+	}
+	
+	/**
+	 * Sets the output file for the trained classifier.
+	 * @param out the new output file
+	 */
+	public void setClassifierOuptutFile(File out) {
+		classifierOutputFile = out;
+	}
+	
+	/**
+	 * Returns a file object of the output file for attributes.
+	 * @return a file object of the output file for attributes.
+	 */
+	public File getTrainingDataOutputFile() {
+		return trainingDataOutputFile;
+	}
+	
+	/**
+	 * Sets the output file for the training data AIFF file.
+	 * @param out the new output file
+	 */
+	public void setTrainingDataOutputFile(File out) {
+		trainingDataOutputFile = out;
+	}
+	
 }

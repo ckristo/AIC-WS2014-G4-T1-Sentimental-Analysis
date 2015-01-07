@@ -17,6 +17,12 @@ public interface ITwitterSentimentClassifier {
 	public void train(Map<Status,Sentiment> trainingSet) throws ClassifierException;
 	
 	/**
+	 * Checks if the classifier was previously trained or not.
+	 * @return true if the classifier was previously trained, false otherwise.
+	 */
+	public boolean isTrained();
+	
+	/**
 	 * Determines the sentiment of a tweet.
 	 * @param tweet the Twitter4J status object to classify.
 	 * @return the sentiment class determined by the classifier (as double).
