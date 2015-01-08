@@ -130,4 +130,26 @@ public class PreprocessorTest {
 		assertEquals(1, tokens.size());
 		assertTrue(tokens.contains("foobar"));
 	}
+
+	@Test
+	public void testSplitSlashes() {
+		List<String> tokens = new ArrayList<>();
+		tokens.add("/foo");
+		tokens.add("bar/");
+		tokens.add("baz/bal");
+		tokens.add("abcd/e!!!/f/ghijk");
+		tokens.add("xyzw");
+
+		preprocessor.preprocess(tokens);
+
+		assertEquals(7, tokens.size());
+		assertTrue(tokens.contains("foo"));
+		assertTrue(tokens.contains("bar"));
+		assertTrue(tokens.contains("baz"));
+		assertTrue(tokens.contains("ball"));
+		assertTrue(tokens.contains("abcd"));
+		assertTrue(tokens.contains("ghijk"));
+		assertTrue(tokens.contains("xyzw"));
+	}
+
 }

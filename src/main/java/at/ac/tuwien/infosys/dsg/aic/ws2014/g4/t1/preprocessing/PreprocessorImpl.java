@@ -26,6 +26,12 @@ public class PreprocessorImpl implements IPreprocessor {
 	private static final Pattern TEXT_PATTERN = Pattern.compile("[a-z]{2,}");
 
 	/**
+	 * Pattern matching slashes.
+	 */
+	//TODO: only match within words?
+	private static final Pattern SLASH_PATTERN = Pattern.compile("/");
+
+	/**
 	 * Dictionary used for stopword removal.
 	 */
 	private final StopwordsDictionary stopwordsDict = StopwordsDictionary.getInstance();
@@ -110,6 +116,20 @@ public class PreprocessorImpl implements IPreprocessor {
 			if (!TEXT_PATTERN.matcher(normalizedWord).find()) {
 				logger.debug("     --> non-word token detected, remove it.");
 				iterator.remove();
+				continue;
+			}
+
+			// split at slashes (Twokenize does not do this)
+			if (SLASH_PATTERN.matcher(normalizedWord).find()) {
+				logger.debug("     --> token contains slashes, splitting and re-processing it.");
+				iterator.remove();
+				String[] strs = SLASH_PATTERN.split(normalizedWord);
+				for(String s : strs) {
+					if(!s.isEmpty()) {
+						iterator.add(s);
+						iterator.previous();	// s should be processed again
+					}
+				}
 				continue;
 			}
 
