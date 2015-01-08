@@ -117,4 +117,17 @@ public class PreprocessorTest {
 		assertTrue(tokens.contains("trees"));
 	}
 
+	@Test
+	public void testRemoveUselessTokens() {
+		List<String> tokens = new ArrayList<>();
+		tokens.add("...");
+		tokens.add("123");
+		tokens.add("a)");
+		tokens.add("foobar");
+
+		preprocessor.preprocess(tokens);
+
+		assertEquals(1, tokens.size());
+		assertTrue(tokens.contains("foobar"));
+	}
 }

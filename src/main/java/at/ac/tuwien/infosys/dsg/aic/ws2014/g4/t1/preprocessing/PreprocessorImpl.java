@@ -21,6 +21,11 @@ public class PreprocessorImpl implements IPreprocessor {
 	private static final Pattern REP_CHAR_PATTERN = Pattern.compile("(\\w)\\1{3,}");
 
 	/**
+	 * Pattern which matches any string containing at least two characters a-z.
+	 */
+	private static final Pattern TEXT_PATTERN = Pattern.compile("[a-z]{2,}");
+
+	/**
 	 * Dictionary used for stopword removal.
 	 */
 	private final StopwordsDictionary stopwordsDict = StopwordsDictionary.getInstance();
@@ -101,7 +106,14 @@ public class PreprocessorImpl implements IPreprocessor {
 				continue;
 			}
 
-			// (5) replace misspelled words
+			// (5) remove token if it does not seem to be a useful word (e.g. just punctuation)
+			if (!TEXT_PATTERN.matcher(normalizedWord).find()) {
+				logger.debug("     --> non-word token detected, remove it.");
+				iterator.remove();
+				continue;
+			}
+
+			// (6) replace misspelled words
 			if (!spellDict.containsWord(normalizedWord)) {
 				String correction = spellDict.getSuggestion(normalizedWord);
 				if (correction != null) {
@@ -113,7 +125,7 @@ public class PreprocessorImpl implements IPreprocessor {
 				}
 			}
 
-			// (6) replace repeated characters (>3 repetitions)
+			// (7) replace repeated characters (>3 repetitions)
 			normalizedWord = REP_CHAR_PATTERN.matcher(normalizedWord).replaceAll("$1");
 
 			// normalize the token
