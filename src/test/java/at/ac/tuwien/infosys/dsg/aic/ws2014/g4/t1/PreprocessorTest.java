@@ -91,7 +91,7 @@ public class PreprocessorTest {
 	}
 
 	@Test
-	public void testReplaceMisspelledWords() {
+	public void testReplaceMisspelledWords_1() {
 		List<String> tokens = new ArrayList<>();
 		tokens.add("huose");
 		tokens.add("ball");
@@ -101,6 +101,16 @@ public class PreprocessorTest {
 		assertFalse(tokens.contains("huose"));
 		assertTrue(tokens.contains("house"));
 		assertTrue(tokens.contains("ball"));
+	}
+	
+	@Test
+	public void testReplaceMisspelledWords_2() {
+		List<String> tokens = new ArrayList<>();
+		tokens.add(",");
+		
+		preprocessor.preprocess(tokens);
+		
+		assertTrue(tokens.contains(","));
 	}
 
 	@Test
@@ -151,5 +161,4 @@ public class PreprocessorTest {
 		assertTrue(tokens.contains("ghijk"));
 		assertTrue(tokens.contains("xyzw"));
 	}
-
 }

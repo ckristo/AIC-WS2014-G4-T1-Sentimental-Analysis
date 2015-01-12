@@ -24,7 +24,7 @@ public class SpellDictionary {
 	/**
 	 * The threshold (edit distance) for the spell correction.
 	 */
-	private static final int SUGGESTION_THRESHOLD = 0;
+	private static final int SUGGESTION_THRESHOLD = 0; // has no effect
 	
 	/**
 	 * Logger instance.
@@ -96,7 +96,6 @@ public class SpellDictionary {
 	 * @return whether the word is present in the dictionary, false otherwise
 	 */
 	public boolean containsWord(String word) {
-		//TODO: convert all words to lower case in dictionary
 		return dictionary.isCorrect(word.toLowerCase());
  	}
 	
