@@ -22,12 +22,11 @@ public class TokenizerImpl implements ITokenizer {
 	public List<String> tokenize(String string) {
 		List<String> tokens = Twokenize.tokenize(string);
 		
-		// 
 		logger.debug("* Tokenize tweet:");
 		logger.debug("  - input: '"+string+"'");
 		logger.debug("  - tokens: '"+tokens+"'");
 		
 		return tokens;
 	}
-
+	
 }

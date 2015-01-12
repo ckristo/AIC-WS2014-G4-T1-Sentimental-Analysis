@@ -18,18 +18,22 @@ public class PreprocessorImpl implements IPreprocessor {
 	/**
 	 * Pattern for a character being repeated more than 3 times ("hellooooo")
 	 */
-	private static final Pattern REP_CHAR_PATTERN = Pattern.compile("(\\w)\\1{3,}");
+	//private static final Pattern REP_CHAR_PATTERN = Pattern.compile("(\\w)\\1{3,}");
 
 	/**
-	 * Pattern which matches any string containing at least two characters a-z.
+	 * Pattern which matches a string containing only of special chars
 	 */
-	private static final Pattern TEXT_PATTERN = Pattern.compile("[a-z]{2,}");
+	private static final Pattern SPECIAL_CHARS_PATTERN = Pattern.compile("^[,.;:?!'\"+\\-*/=_#(){}\\[\\]&%$§]+$");
 
 	/**
-	 * Pattern matching slashes.
+	 * String that delimits alternatives -- may not contain special regular expression characters!.
 	 */
-	//TODO: only match within words?
-	private static final Pattern SLASH_PATTERN = Pattern.compile("/");
+	private static final String ALTERNATIVE_DELIMITER = "/";
+	
+	/**
+	 * Pattern matching for alternative (e.g. "lunch/dinner").
+	 */
+	private static final Pattern ALTERNATIVE_PATTERN = Pattern.compile("\\w+("+ALTERNATIVE_DELIMITER+"\\w+)+");
 
 	/**
 	 * Dictionary used for stopword removal.
@@ -82,7 +86,7 @@ public class PreprocessorImpl implements IPreprocessor {
 			}
 
 			// (2) replace URLs
-			if (isURL(normalizedWord)) {
+			if (isURL(word)) {
 				logger.debug("     --> URL detected, replace it with URL-token.");
 
 				iterator.set(URL_TOKEN);
@@ -90,7 +94,7 @@ public class PreprocessorImpl implements IPreprocessor {
 			}
 
 			// (3) replace usernames
-			if (isUsername(normalizedWord)) {
+			if (isUsername(word)) {
 				logger.debug("     --> username detected, replace it with Username-token.");
 
 				iterator.set(USERNAME_TOKEN);
@@ -113,27 +117,29 @@ public class PreprocessorImpl implements IPreprocessor {
 			}
 
 			// (5) remove token if it does not seem to be a useful word (e.g. just punctuation)
-			if (!TEXT_PATTERN.matcher(normalizedWord).find()) {
+			if (containsOnlySpecialChars(word)) {
 				logger.debug("     --> non-word token detected, remove it.");
 				iterator.remove();
 				continue;
 			}
-
-			// split at slashes (Twokenize does not do this)
-			if (SLASH_PATTERN.matcher(normalizedWord).find()) {
-				logger.debug("     --> token contains slashes, splitting and re-processing it.");
+			
+			// (6) replace alternatives (e.g. lunch/dinner) with single words
+			if (isAlternative(word)) {
+				logger.debug("     --> alternative string detected, split it up.");
 				iterator.remove();
-				String[] strs = SLASH_PATTERN.split(normalizedWord);
-				for(String s : strs) {
-					if(!s.isEmpty()) {
-						iterator.add(s);
-						iterator.previous();	// s should be processed again
-					}
+				
+				String[] alternatives = word.split((ALTERNATIVE_DELIMITER));
+				for (String alternative : alternatives) {
+					iterator.add(alternative);
 				}
 				continue;
 			}
+			
+			// TODO: (7) repeated chars
+				// - try to condense each string consisting of repeated chars to 2 equal chars -- check if in dictionary and replace it p.r.n.
+				// - if not: try to condense each string consisting of repeated chars to 1 char -- check if in dictionary and replace it p.r.n.
 
-			// (6) replace misspelled words
+			// (8) replace misspelled words
 			if (!spellDict.containsWord(normalizedWord)) {
 				String correction = spellDict.getSuggestion(normalizedWord);
 				if (correction != null) {
@@ -144,10 +150,7 @@ public class PreprocessorImpl implements IPreprocessor {
 					continue;
 				}
 			}
-
-			// (7) replace repeated characters (>3 repetitions)
-			normalizedWord = REP_CHAR_PATTERN.matcher(normalizedWord).replaceAll("$1");
-
+			
 			// normalize the token
 			iterator.set(normalizedWord);
 		}
@@ -170,6 +173,26 @@ public class PreprocessorImpl implements IPreprocessor {
 	 */
 	private boolean isUsername(String str) {
 		return str.startsWith("@");
+	}
+	
+	/**
+	 * Checks if a given string contains at least one letter.
+	 * @param str the string to check
+	 * @return true if the string contains at least one letter, false otherwise.
+	 */
+	private boolean containsOnlySpecialChars(String str) {
+		Matcher m = SPECIAL_CHARS_PATTERN.matcher(str);
+		return m.matches();
+	}
+	
+	/**
+	 * Checks if a string expresses an alternative (e.g. lunch/dinner)
+	 * @param str the string to check
+	 * @return 
+	 */
+	private boolean isAlternative(String str) {
+		Matcher m = ALTERNATIVE_PATTERN.matcher(str);
+		return m.matches();
 	}
 
 	/**

@@ -108,11 +108,76 @@ public class PreprocessorTest {
 		List<String> tokens = new ArrayList<>();
 		tokens.add(",");
 		
+		// TODO: extend this test case
+		
 		preprocessor.preprocess(tokens);
 		
-		assertTrue(tokens.contains(","));
+		assertFalse(tokens.contains(","));
+	}
+	
+	@Test
+	public void testSplitSlashes() {
+		List<String> tokens = new ArrayList<>();
+		tokens.add("abc1/def1");
+		tokens.add("abc2/def2/ghi2");
+		tokens.add("abc3/def3/ghi3/jkl3");
+		
+		tokens.add("/abc");
+		tokens.add("abc/");
+		tokens.add("/abc/");
+		
+		tokens.add("/abc/def");
+		tokens.add("abc/def/");
+		tokens.add("/abc/def/");
+		
+		tokens.add("/abc/def/ghi");
+		tokens.add("abc/def/ghi/");
+		tokens.add("/abc/def/ghi/");
+		
+		preprocessor.preprocess(tokens);
+		
+		assertTrue(tokens.contains("abc1"));
+		assertTrue(tokens.contains("def1"));
+		assertTrue(tokens.contains("abc2"));
+		assertTrue(tokens.contains("def2"));
+		assertTrue(tokens.contains("ghi2"));
+		assertTrue(tokens.contains("abc3"));
+		assertTrue(tokens.contains("def3"));
+		assertTrue(tokens.contains("ghi3"));
+		assertTrue(tokens.contains("jkl3"));
+		
+		assertTrue(tokens.contains("/abc"));
+		assertTrue(tokens.contains("abc/"));
+		assertTrue(tokens.contains("/abc/"));
+		assertTrue(tokens.contains("/abc/def"));
+		assertTrue(tokens.contains("abc/def/"));
+		assertTrue(tokens.contains("/abc/def/"));
+		assertTrue(tokens.contains("/abc/def/ghi"));
+		assertTrue(tokens.contains("abc/def/ghi/"));
+		assertTrue(tokens.contains("/abc/def/ghi/"));
+		assertFalse(tokens.contains("abc"));
+		assertFalse(tokens.contains("def"));
+		assertFalse(tokens.contains("ghi"));
 	}
 
+	@Test
+	public void testRemoveSpecialCharTokens() {
+		List<String> tokens = new ArrayList<>();
+		tokens.add("...");
+		tokens.add("!!!");
+		tokens.add("$!.?");
+		tokens.add("$$!!!.?*#");
+		tokens.add("a)");
+		tokens.add("!foobar!");
+
+		preprocessor.preprocess(tokens);
+
+		assertEquals(2, tokens.size());
+		assertTrue(tokens.contains("a)"));
+		assertTrue(tokens.contains("!foobar!"));
+	}
+	
+	/*
 	@Test
 	public void testRemoveRepeatedChars() {
 		List<String> tokens = new ArrayList<>();
@@ -125,40 +190,5 @@ public class PreprocessorTest {
 		assertTrue(tokens.contains("hello"));
 		assertTrue(tokens.contains("testing"));
 		assertTrue(tokens.contains("trees"));
-	}
-
-	@Test
-	public void testRemoveUselessTokens() {
-		List<String> tokens = new ArrayList<>();
-		tokens.add("...");
-		tokens.add("123");
-		tokens.add("a)");
-		tokens.add("foobar");
-
-		preprocessor.preprocess(tokens);
-
-		assertEquals(1, tokens.size());
-		assertTrue(tokens.contains("foobar"));
-	}
-
-	@Test
-	public void testSplitSlashes() {
-		List<String> tokens = new ArrayList<>();
-		tokens.add("/foo");
-		tokens.add("bar/");
-		tokens.add("baz/bal");
-		tokens.add("abcd/e!!!/f/ghijk");
-		tokens.add("xyzw");
-
-		preprocessor.preprocess(tokens);
-
-		assertEquals(7, tokens.size());
-		assertTrue(tokens.contains("foo"));
-		assertTrue(tokens.contains("bar"));
-		assertTrue(tokens.contains("baz"));
-		assertTrue(tokens.contains("ball"));
-		assertTrue(tokens.contains("abcd"));
-		assertTrue(tokens.contains("ghijk"));
-		assertTrue(tokens.contains("xyzw"));
-	}
+	}*/
 }
