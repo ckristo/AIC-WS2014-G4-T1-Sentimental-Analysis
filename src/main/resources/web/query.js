@@ -1,9 +1,9 @@
 $(document).ready(function() {
-	$.ajax({
+    $.ajax({
         url: "http://localhost:9000/sentiment/test",
         type: "POST"
     }).then(function(data) {
-       
+
        $.ajax({
         url: "http://localhost:9000/sentiment/test/query",
         type: "GET"
@@ -11,9 +11,7 @@ $(document).ready(function() {
        $('.greeting-id').append("test");
        $('.greeting-content').append(data);
     });
-    
+
     });
-    
-    
 });
 
