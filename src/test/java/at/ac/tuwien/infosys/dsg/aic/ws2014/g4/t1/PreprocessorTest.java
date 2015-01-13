@@ -65,6 +65,18 @@ public class PreprocessorTest {
 	}
 
 	@Test
+	public void testReplaceURLs_3() {
+		String testUrl = "foobar://example.com/#/foo/bar";
+		List<String> tokens = new ArrayList<>();
+		tokens.add(testUrl);
+
+		preprocessor.preprocess(tokens);
+
+		assertFalse(tokens.contains(testUrl));
+		assertTrue(tokens.contains(IPreprocessor.URL_TOKEN));
+	}
+
+	@Test
 	public void testReplaceUsernames() {
 		List<String> tokens = new ArrayList<>();
 		tokens.add("@test");
@@ -176,19 +188,24 @@ public class PreprocessorTest {
 		assertTrue(tokens.contains("a)"));
 		assertTrue(tokens.contains("!foobar!"));
 	}
-	
-	/*
+
 	@Test
 	public void testRemoveRepeatedChars() {
 		List<String> tokens = new ArrayList<>();
 		tokens.add("helloooooo");
 		tokens.add("teeeestinnnnng");
 		tokens.add("trees");
+		tokens.add("looooose");
 
 		preprocessor.preprocess(tokens);
 
+		assertFalse(tokens.contains("helloooooo"));
+		assertFalse(tokens.contains("teeeestinnnnng"));
+		assertFalse(tokens.contains("looooose"));
+		
 		assertTrue(tokens.contains("hello"));
 		assertTrue(tokens.contains("testing"));
 		assertTrue(tokens.contains("trees"));
-	}*/
+		assertTrue(tokens.contains("loose"));
+	}
 }

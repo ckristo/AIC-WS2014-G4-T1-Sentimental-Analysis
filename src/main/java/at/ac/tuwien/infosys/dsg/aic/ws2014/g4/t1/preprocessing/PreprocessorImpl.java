@@ -13,13 +13,13 @@ public class PreprocessorImpl implements IPreprocessor {
 	 * RegEx pattern for a URL.
 	 * @see http://blog.mattheworiordan.com/post/13174566389/url-regular-expression-for-links-with-or-without
 	 */
-	private static final Pattern URL_PATTERN = Pattern.compile("^((([A-Za-z]{3,9}:(?:\\/\\/)?)(?:[-;:&=\\+\\$,\\w]+@)?[A-Za-z0-9.-]+|(?:www.|[-;:&=\\+\\$,\\w]+@)[A-Za-z0-9.-]+)((?:\\/[\\+~%\\/.\\w-_]*)?\\??(?:[-\\+=&;%@.\\w_]*)#?(?:[\\w]*))?)$");
+	private static final Pattern URL_PATTERN = Pattern.compile("^((([A-Za-z]{3,9}:(?:\\/\\/)?)(?:[-;:&=\\+\\$,\\w]+@)?[A-Za-z0-9.-]+|(?:www.|[-;:&=\\+\\$,\\w]+@)[A-Za-z0-9.-]+)((?:\\/[\\+~%\\/.\\w_-]*)?\\??(?:[-\\+=&;%@.\\w_]*)#?(?:[\\w/?:@_-]*))?)$");
 
 	/**
-	 * Pattern for a character being repeated more than 3 times ("hellooooo")
+	 * Pattern for a character being repeated more than 3 times
 	 */
-	//private static final Pattern REP_CHAR_PATTERN = Pattern.compile("(\\w)\\1{3,}");
-
+	private static final Pattern REPETITIVE_CHAR_PATTERN = Pattern.compile("(\\w)\\1{3,}");
+	
 	/**
 	 * Pattern which matches a string containing only of special chars
 	 */
@@ -29,7 +29,7 @@ public class PreprocessorImpl implements IPreprocessor {
 	 * String that delimits alternatives -- may not contain special regular expression characters!.
 	 */
 	private static final String ALTERNATIVE_DELIMITER = "/";
-	
+
 	/**
 	 * Pattern matching for alternative (e.g. "lunch/dinner").
 	 */
@@ -116,32 +116,41 @@ public class PreprocessorImpl implements IPreprocessor {
 				continue;
 			}
 
-			// (5) remove token if it does not seem to be a useful word (e.g. just punctuation)
+			// (5) remove token if it contains of special chars only
 			if (containsOnlySpecialChars(word)) {
-				logger.debug("     --> non-word token detected, remove it.");
+				logger.debug("     --> specialchars-only token detected, remove it.");
 				iterator.remove();
 				continue;
 			}
-			
+
 			// (6) replace alternatives (e.g. lunch/dinner) with single words
 			if (isAlternative(word)) {
 				logger.debug("     --> alternative string detected, split it up.");
 				iterator.remove();
-				
+
 				String[] alternatives = word.split((ALTERNATIVE_DELIMITER));
 				for (String alternative : alternatives) {
 					iterator.add(alternative);
 				}
 				continue;
 			}
-			
-			// TODO: (7) repeated chars
-				// - try to condense each string consisting of repeated chars to 2 equal chars -- check if in dictionary and replace it p.r.n.
-				// - if not: try to condense each string consisting of repeated chars to 1 char -- check if in dictionary and replace it p.r.n.
 
-			// (8) replace misspelled words
+			// (7) replace misspelled words
 			if (!spellDict.containsWord(normalizedWord)) {
-				String correction = spellDict.getSuggestion(normalizedWord);
+				String correction;
+				
+				// try to find a correction for word by condense multiple characters
+				correction = findRepetitiveCharacterCorrection(normalizedWord);
+				if (correction != null) {
+					String replacement = normalize(correction);
+					logger.debug("     --> word with more than 3 equal chars detected, replace it with '"+replacement+"'");
+
+					iterator.set(replacement);
+					continue;
+				}
+				
+				// try to get a spell correction suggestion
+				correction = spellDict.getSuggestion(normalizedWord);
 				if (correction != null) {
 					String replacement = normalize(correction);
 					logger.debug("     --> misspelled word detected, replace it with '"+replacement+"'");
@@ -150,7 +159,7 @@ public class PreprocessorImpl implements IPreprocessor {
 					continue;
 				}
 			}
-			
+
 			// normalize the token
 			iterator.set(normalizedWord);
 		}
@@ -174,7 +183,7 @@ public class PreprocessorImpl implements IPreprocessor {
 	private boolean isUsername(String str) {
 		return str.startsWith("@");
 	}
-	
+
 	/**
 	 * Checks if a given string contains at least one letter.
 	 * @param str the string to check
@@ -184,17 +193,38 @@ public class PreprocessorImpl implements IPreprocessor {
 		Matcher m = SPECIAL_CHARS_PATTERN.matcher(str);
 		return m.matches();
 	}
-	
+
 	/**
 	 * Checks if a string expresses an alternative (e.g. lunch/dinner)
 	 * @param str the string to check
-	 * @return 
+	 * @return
 	 */
 	private boolean isAlternative(String str) {
 		Matcher m = ALTERNATIVE_PATTERN.matcher(str);
 		return m.matches();
 	}
-
+	
+	/**
+	 * Tries to find a correction by replacing repetitive characters.
+	 * @param str the string to find corrections for
+	 * @return the correction or null if no correction found
+	 */
+	private String findRepetitiveCharacterCorrection(String str) {
+		String correctedStr;
+		
+		correctedStr = REPETITIVE_CHAR_PATTERN.matcher(str).replaceAll("$1");
+		if (spellDict.containsWord(correctedStr)) {
+			return correctedStr;
+		}
+		
+		correctedStr = REPETITIVE_CHAR_PATTERN.matcher(str).replaceAll("$1$1");
+		if (spellDict.containsWord(correctedStr)) {
+			return correctedStr;
+		}
+		
+		return null;
+	}
+	
 	/**
 	 * Performs normalization of a token.
 	 * @param str the string to normalize
