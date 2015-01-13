@@ -1,4 +1,8 @@
 ball
 house
 test
+loose
+hello
+testing
+trees
 h
