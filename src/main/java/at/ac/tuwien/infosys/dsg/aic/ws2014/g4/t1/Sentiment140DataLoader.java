@@ -1,7 +1,5 @@
 package at.ac.tuwien.infosys.dsg.aic.ws2014.g4.t1;
 
-import at.ac.tuwien.infosys.dsg.aic.ws2014.g4.t1.classifier.ClassifierException;
-import at.ac.tuwien.infosys.dsg.aic.ws2014.g4.t1.classifier.ITwitterSentimentClassifier;
 import at.ac.tuwien.infosys.dsg.aic.ws2014.g4.t1.classifier.Sentiment;
 import at.ac.tuwien.infosys.dsg.aic.ws2014.g4.t1.classifier.TwitterSentimentClassifierImpl;
 import at.ac.tuwien.infosys.dsg.aic.ws2014.g4.t1.helper.ApplicationConfig;
@@ -27,16 +25,16 @@ import twitter4j.TwitterException;
 import twitter4j.TwitterObjectFactory;
 
 /**
- * Performs training of the classifier based on the Sentiment140 training data.
+ * Reads the Sentiment140 training dataset file and exports the processed 
+ * training data as ARFF file.
  * @see http://help.sentiment140.com/for-students/
  */
-public class Sentiment140TrainClassifier {
+public class Sentiment140DataLoader {
 	
 	/**
 	 * Exit value in case of error.
 	 */
 	private static final int EXIT_ERROR = 1;
-	
 	/**
 	 * Exit value in case of a successful run.
 	 */
@@ -46,12 +44,10 @@ public class Sentiment140TrainClassifier {
 	 * Sentiment value for positive sentiment.
 	 */
 	private static final int POLARITY_POSITIVE = 4;
-	
 	/**
 	 * Sentiment value for negative sentiment.
 	 */
 	private static final int POLARITY_NEGATIVE = 0;
-	
 	/**
 	 * Sentiment value for neutral sentiment.
 	 */
@@ -61,12 +57,10 @@ public class Sentiment140TrainClassifier {
 	 * The CSV row that contains the polarity value.
 	 */
 	private static final int ROW_POLARITY = 0;
-	
 	/**
 	 * The CSV row that contains the Tweet's ID.
 	 */
 	private static final int ROW_ID = 1;
-	
 	/**
 	 * The CSV row that contains the Tweet's text.
 	 */
@@ -75,7 +69,7 @@ public class Sentiment140TrainClassifier {
 	/**
 	 * The max. number of elements to put into the training set per class.
 	 */
-	private static final int LIMIT_PER_CLASS = 50000;
+	private static int classLimit = 5000;
 	
 	/**
 	 * Logger.
@@ -86,10 +80,8 @@ public class Sentiment140TrainClassifier {
 	 * Prints usage message to stdout.
 	 */
 	public static void usage() {
-		System.out.println("Sentiment140TrainClassifier <bzipped-csv-file>");
+		System.out.println("Sentiment140TrainClassifier <bzipped-csv-file> [class-limit]");
 	}
-	
-	// TODO: test classifier performance: http://weka.wikispaces.com/Use+WEKA+in+your+Java+code#Classification-Evaluating
 	
 	/**
 	 * main()
@@ -101,16 +93,28 @@ public class Sentiment140TrainClassifier {
 			System.err.println("Missing argument <bzipped-csv-file>");
 			usage();
 			System.exit(EXIT_ERROR);
-		} else if (args.length > 1) {
+		} else if (args.length > 2) {
 			System.err.println("Too much arguments");
 			usage();
 			System.exit(EXIT_ERROR);
+		}
+		
+		// read class limit argument
+		if (args.length == 2) {
+			try {
+				classLimit = Integer.parseInt(args[1]) * 1000;
+			} catch (NumberFormatException ex) {
+				System.err.println("Argument [class-limit] must be a number");
+				usage();
+				System.exit(EXIT_ERROR);
+			}
 		}
 		
 		// check if file exists
 		File inFile = new File(args[0]);
 		if (!inFile.exists()) {
 			System.err.println("Given <bzipped-csv-file> doesn't exist");
+			usage();
 			System.exit(EXIT_ERROR);
 		}
 		
@@ -121,12 +125,13 @@ public class Sentiment140TrainClassifier {
 			trainingSet = readTrainingSet(inFile);
 		} catch (IOException ex) {
 			System.err.println("Couldn't read given <bzipped-csv-file>");
+			usage();
 			System.exit(EXIT_ERROR);
 		}
 		
 		ApplicationConfig config = null;
 		try {
-			InputStream is = Sentiment140TrainClassifier.class.getResourceAsStream(Constants.DEFAULT_CONFIG_FILE_RESOURCE);
+			InputStream is = Sentiment140DataLoader.class.getResourceAsStream(Constants.DEFAULT_CONFIG_FILE_RESOURCE);
 			config = new ApplicationConfig(is);
 		} catch (IOException ex) {
 			logger.error("Couldn't load application configuration file", ex);
@@ -134,13 +139,18 @@ public class Sentiment140TrainClassifier {
 			System.exit(EXIT_ERROR);
 		}
 		
-		// create and train classifier
-		ITwitterSentimentClassifier classifier = new TwitterSentimentClassifierImpl(config);
+		// create classifier
+		TwitterSentimentClassifierImpl classifier = new TwitterSentimentClassifierImpl(config);
+		
+		// process and export training data
+		classifier.processTrainingSet(trainingSet);
+		
+		// export processed training data
 		try {
-			classifier.train(trainingSet);
-		} catch (ClassifierException ex) {
-			logger.error("Couldn't train classifier.", ex);
-			System.err.println("Classifier couldn't be trained");
+			classifier.exportProcessedTrainingDataToArffFile("Sentiment140TrainingData-"+(classLimit/1000)+"k.arff");
+		} catch (IOException ex) {
+			logger.error("Couldn't export processed training data to ARFF file", ex);
+			System.err.println("Couldn't export processed training data to ARFF file");
 			System.exit(EXIT_ERROR);
 		}
 		
@@ -200,7 +210,7 @@ public class Sentiment140TrainClassifier {
 			boolean classLimitReached = false;
 			// - negative
 			if (sent.equals(Sentiment.NEGATIVE)) {
-				if (numNegative < LIMIT_PER_CLASS) {
+				if (numNegative < classLimit) {
 					numNegative++;
 				} else {
 					classLimitReached = true;
@@ -208,7 +218,7 @@ public class Sentiment140TrainClassifier {
 			}
 			// - neutral
 			if (sent.equals(Sentiment.NEUTRAL)) {
-				if (numNeutral < LIMIT_PER_CLASS) {
+				if (numNeutral < classLimit) {
 					numNeutral++;
 				} else {
 					classLimitReached = true;
@@ -216,7 +226,7 @@ public class Sentiment140TrainClassifier {
 			}
 			// - positive
 			if (sent.equals(Sentiment.POSITIVE)) {
-				if (numPositive < LIMIT_PER_CLASS) {
+				if (numPositive < classLimit) {
 					numPositive++;
 				} else {
 					classLimitReached = true;
@@ -224,10 +234,10 @@ public class Sentiment140TrainClassifier {
 			}
 			
 			// stop after limits for each class is reached
-			if (numNegative == LIMIT_PER_CLASS 
-					&& numNeutral == LIMIT_PER_CLASS 
-					&& numPositive == LIMIT_PER_CLASS) {
-				logger.debug("Limit for all classes reached, stop collecting training data");
+			if (numNegative == classLimit 
+					&& numNeutral == classLimit 
+					&& numPositive == classLimit) {
+				logger.info("Limit for all classes reached, stop collecting training data");
 				break;
 			}
 			

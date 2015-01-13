@@ -4,6 +4,7 @@ import at.ac.tuwien.infosys.dsg.aic.ws2014.g4.t1.classifier.Sentiment;
 import at.ac.tuwien.infosys.dsg.aic.ws2014.g4.t1.classifier.TwitterSentimentClassifierImpl;
 import at.ac.tuwien.infosys.dsg.aic.ws2014.g4.t1.helper.ApplicationConfig;
 import at.ac.tuwien.infosys.dsg.aic.ws2014.g4.t1.helper.Constants;
+import java.io.File;
 import java.io.InputStream;
 import java.util.HashMap;
 import java.util.Map;
@@ -44,15 +45,17 @@ public class ClassifierTest {
 	Status tweet7 = mock(Status.class);
 	{ when(tweet7.getText()).thenReturn("This is a good test tweet"); }
 	
-	Map<Status, Sentiment> trainingData = new HashMap<>();
+	Map<Status, Sentiment> trainingSet = new HashMap<>();
 	{
-		trainingData.put(tweet1, Sentiment.POSITIVE);
-		trainingData.put(tweet2, Sentiment.POSITIVE);
-		trainingData.put(tweet3, Sentiment.NEGATIVE);
-		trainingData.put(tweet4, Sentiment.NEGATIVE);
-		trainingData.put(tweet5, Sentiment.NEUTRAL);
-		trainingData.put(tweet6, Sentiment.NEUTRAL);
+		trainingSet.put(tweet1, Sentiment.POSITIVE);
+		trainingSet.put(tweet2, Sentiment.POSITIVE);
+		trainingSet.put(tweet3, Sentiment.NEGATIVE);
+		trainingSet.put(tweet4, Sentiment.NEGATIVE);
+		trainingSet.put(tweet5, Sentiment.NEUTRAL);
+		trainingSet.put(tweet6, Sentiment.NEUTRAL);
 	}
+	
+	File exportTrainingDataFile = null;
 	
 	@Before
 	public void setUp() throws Exception {
@@ -65,23 +68,87 @@ public class ClassifierTest {
 	public void tearDown() {
 		classifier.getAttributesOutputFile().delete();
 		classifier.getClassifierOuptutFile().delete();
+		if (exportTrainingDataFile != null) {
+			exportTrainingDataFile.delete();
+		}
 		classifier = null;
 	}
 	
 	@Test
-	public void testTrainClassifier() throws Exception {
+	public void testIfClassifierIsUntrained() {
 		assertThat(classifier.isTrained(), is(false));
-		classifier.train(trainingData);
+	}
+	
+	@Test
+	public void testTrainClassifier() throws Exception {
+		classifier.train(trainingSet);
 		assertThat(classifier.isTrained(), is(true));
+		
 		assertThat(classifier.getAttributesOutputFile().exists(), is(true));
 		assertThat(classifier.getAttributesOutputFile().exists(), is(true));
 	}
 	
 	@Test
 	public void testClassifyWithPrevTrainedClassifier() throws Exception {
-		classifier.train(trainingData);
+		classifier.train(trainingSet);
 		assertThat(classifier.isTrained(), is(true));
+		
 		Double[] prob = classifier.classify(tweet7);
 		assertThat(prob, is(notNullValue()));
+	}
+	
+	@Test(expected = IllegalStateException.class)
+	public void testClassifyWithUntrainedClassifier() throws Exception {
+		classifier.classify(tweet7);
+	}
+	
+	@Test
+	public void testExportProcessedTrainingSet() throws Exception {
+		classifier.processTrainingSet(trainingSet);
+		assertThat(classifier.isTrained(), is(false));
+		
+		exportTrainingDataFile = new File(classifier.getExportDirectory(), "testData.arff");
+		classifier.exportProcessedTrainingDataToArffFile(exportTrainingDataFile.getName());
+		assertThat(exportTrainingDataFile.exists(), is(true));
+	}
+	
+	@Test
+	public void testTrainClassifierFromArffFile() throws Exception {
+		classifier.processTrainingSet(trainingSet);
+		exportTrainingDataFile = new File(classifier.getExportDirectory(), "testData.arff");
+		classifier.exportProcessedTrainingDataToArffFile(exportTrainingDataFile.getName());
+		assertThat(classifier.isTrained(), is(false));
+		
+		classifier.loadProcessedTrainingDataFromArffFile(exportTrainingDataFile);
+		assertThat(classifier.isTrained(), is(false));
+		
+		classifier.train();
+		assertThat(classifier.isTrained(), is(true));
+		
+		classifier.classify(tweet7);
+	}
+	
+	@Test
+	public void testCompareDifferentTrainingProcedures() throws Exception {
+		Double[] c1, c2, c3;
+		
+		// approach 1
+		classifier.train(trainingSet);
+		assertThat(classifier.isTrained(), is(true));
+		c1 = classifier.classify(tweet1);
+		
+		// approach 2
+		classifier.processTrainingSet(trainingSet);
+		classifier.train();
+		c2 = classifier.classify(tweet1);
+		
+		// approach 3
+		exportTrainingDataFile = new File(classifier.getExportDirectory(), "testData.arff");
+		classifier.exportProcessedTrainingDataToArffFile(exportTrainingDataFile.getName());
+		classifier.loadProcessedTrainingDataFromArffFile(exportTrainingDataFile);
+		c3 = classifier.classify(tweet1);
+		
+		assertThat(c1, is(equalTo(c2)));
+		assertThat(c2, is(equalTo(c3)));
 	}
 }

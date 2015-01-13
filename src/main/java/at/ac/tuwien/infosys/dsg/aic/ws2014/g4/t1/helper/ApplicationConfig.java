@@ -45,11 +45,6 @@ public class ApplicationConfig {
 	private static final String CONFIG_KEY_CLASSIFIER_IMPORT_TRAINED_CLASSIFIER = "classifier.import_trained_classifier";
 	
 	/**
-	 * The key for the classifier export trained data to file property.
-	 */
-	private static final String CONFIG_KEY_CLASSIFIER_EXPORT_TRAINING_DATA_ARFF = "classifier.export_training_data_arff";
-	
-	/**
 	 * The properties object for the configuration file.
 	 */
 	private final Properties properties;
@@ -167,14 +162,6 @@ public class ApplicationConfig {
 	}
 	
 	/**
-	 * Returns the configuration option that indicates whether to export the training data to an ARFF file (defaults to false).
-	 * @return the configuration option that indicates whether to export the training data to an ARFF file (defaults to false).
-	 */
-	public boolean getExportTrainingDataToArffFile() {
-		return getPropertyAsBoolean(CONFIG_KEY_CLASSIFIER_EXPORT_TRAINING_DATA_ARFF, false);
-	}
-	
-	/**
 	 * Returns the output directory for exporting the trained classifier data (defaults to the current working directory '.')
 	 * @return the output directory for exporting the trained classifier data (defaults to the current working directory '.')
 	 */
@@ -186,7 +173,7 @@ public class ApplicationConfig {
 	 * Returns the class of the classifier type to use according to the configuration.
 	 * @return the class of the classifier type to use according to the configuration or null if configuration option is not set or is set to an invalid class.
 	 */
-	public Class<?> getClassifierType() {
+	public Class<? extends Classifier> getClassifierType() {
 		String className = getProperty(CONFIG_KEY_CLASSIFIER_TYPE);
 		Class<?> cls;
 		if (className != null) {

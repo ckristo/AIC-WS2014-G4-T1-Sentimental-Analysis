@@ -18,9 +18,9 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import twitter4j.Status;
 import weka.classifiers.Classifier;
-import weka.classifiers.bayes.NaiveBayes;
 import weka.classifiers.functions.SMO;
 import weka.core.*;
+import weka.core.converters.ArffLoader;
 import weka.core.converters.ArffSaver;
 
 /**
@@ -34,6 +34,11 @@ public class TwitterSentimentClassifierImpl implements ITwitterSentimentClassifi
 	private static final Logger logger = LogManager.getLogger(TwitterSentimentClassifierImpl.class);
 	
 	/**
+	 * The initial capacity for the attributes vector.
+	 */
+	private static final int INIT_ATTRIBUTES_CAPACITY = 1000;
+	
+	/**
 	 * The classifier name.
 	 */
 	private final String classifierName;
@@ -41,7 +46,7 @@ public class TwitterSentimentClassifierImpl implements ITwitterSentimentClassifi
 	/**
 	 * The classifier type.
 	 */
-	private final Class<?> classifierType;
+	private final Class<? extends Classifier> classifierType;
 	
 	/**
 	 * Indicator whether to export the trained classifier to a file.
@@ -54,24 +59,19 @@ public class TwitterSentimentClassifierImpl implements ITwitterSentimentClassifi
 	private boolean importTrainedClassifier = false;
 	
 	/**
-	 * Indicator whether to export the training data to an ARFF file.
+	 * The export directory path.
 	 */
-	private boolean exportTrainingData = false;
+	private File exportDirectory = null;
 	
 	/**
-	 * The export file path for the attributes data.
+	 * The file name for exporting the classifier to file.
 	 */
-	private File attributesOutputFile = null;
+	private String classifierOutputFileName = null;
 	
 	/**
-	 * The export file path for the classifier data.
+	 * The file name for exporting the attributes data to file.
 	 */
-	private File classifierOutputFile = null;
-	
-	/**
-	 * The export file path for the training data.
-	 */
-	private File trainingDataOutputFile = null;
+	private String attributesOutputFileName = null;
 	
 	/**
 	 * Tokenizer used for Tweet processing.
@@ -89,6 +89,11 @@ public class TwitterSentimentClassifierImpl implements ITwitterSentimentClassifi
 	private FastVector attributes = null;
 	
 	/**
+	 * The processed training data used for training the Weka classifier.
+	 */
+	private Instances trainingData = null;
+	
+	/**
 	 * The Weka classifier used for sentiment classification.
 	 */
 	private Classifier classifier = null;
@@ -96,10 +101,10 @@ public class TwitterSentimentClassifierImpl implements ITwitterSentimentClassifi
 	/**
 	 * Creates a twitter sentiment classifier with defaults:
 	 * - uses SMO as Machine Learning approach
-	 * - doesn't export training data or the trained classifier
+	 * - doesn't export / import a trained classifier
 	 */
 	public TwitterSentimentClassifierImpl() {
-		classifierName = getClass().getName();
+		classifierName = getClass().getSimpleName();
 		classifierType = SMO.class;
 	}
 	
@@ -110,43 +115,50 @@ public class TwitterSentimentClassifierImpl implements ITwitterSentimentClassifi
 	public TwitterSentimentClassifierImpl(ApplicationConfig config) {
 		if (config.getClassifierName() == null) {
 			classifierName = getClass().getName();
-			logger.warn("Classifier name not specified in the configuration file -- setting to '"+getClass().getName()+"'");
+			logger.warn("Classifier name not specified in the configuration file -- setting to '"+getClass().getSimpleName()+"'");
 		} else {
 			classifierName = config.getClassifierName();
 		}
 		
 		classifierType = config.getClassifierType();
-		
-		String exportPath = config.getClassifierOutputDirectory() + File.separator;
+		exportDirectory = new File(config.getClassifierOutputDirectory());
 		
 		exportTrainedClassifier = config.getExportTrainedClassifierToFile();
 		if (exportTrainedClassifier) {
-			String outputFilename = exportPath + classifierName + "-" + classifierType.getName();
-			attributesOutputFile = new File(outputFilename + ".attributes");
-			classifierOutputFile = new File(outputFilename + ".classifier");
-		} else {
-			attributesOutputFile = null;
-			classifierOutputFile = null;
+			attributesOutputFileName = classifierName + ".attributes";
+			classifierOutputFileName = classifierName + "-" + classifierType.getSimpleName() + ".classifier";
 		}
 		
 		importTrainedClassifier = config.getImportTrainedClassifierToFile();
-		
-		exportTrainingData = config.getExportTrainingDataToArffFile();
-		if (exportTrainingData) {
-			trainingDataOutputFile = new File(exportPath + "trainingdata.arff");
-		} else {
-			trainingDataOutputFile = null;
-		}
 	}
 	
 	@Override
 	public void train(Map<Status, Sentiment> trainingSet) throws ClassifierException {
-		// create vector of attributes
-		FastVector wekaAttrs = new FastVector(100);
+		processTrainingSet(trainingSet);
+		train();
+	}
+	
+	@Override
+	public boolean isTrained() {
+		if (classifier == null) {
+			if (importTrainedClassifier) {
+				restoreTrainedClassifier();
+			}
+		}
+		return (attributes != null && classifier != null);
+	}
+	
+	/**
+	 * Processes the training data and creates a training data set for the Weka classifier.
+	 * @param trainingSet the input training data
+	 */
+	public void processTrainingSet(Map<Status, Sentiment> trainingSet) {
+		// init attributes vector
+		attributes = new FastVector(INIT_ATTRIBUTES_CAPACITY);
 
 		// add class attribute
 		Attribute classAttr = createClassAttribute();
-		wekaAttrs.addElement(classAttr);
+		attributes.addElement(classAttr);
 		
 		Map<Status, List<String>> processedTweets = new HashMap<>();
 		Set<String> allWords = new HashSet<>();
@@ -162,17 +174,15 @@ public class TwitterSentimentClassifierImpl implements ITwitterSentimentClassifi
 		}
 		
 		// create attributes for all occurring words
-		attributes = new FastVector(100);
 		for (String w : allWords) {
 			Attribute attr = new Attribute(w);
 			attributes.addElement(attr);
-			wekaAttrs.addElement(attr);
 		}
 		
 		// NOTE: do not alter attributes after the next step!
 		
-		Instances trainingData = new Instances(classifierName, wekaAttrs, 100);
-		trainingData.setClass(classAttr);
+		trainingData = new Instances(classifierName, attributes, 100);
+		trainingData.setClassIndex(0);
 		
 		double[] zeros = new double[trainingData.numAttributes()];
 		
@@ -193,11 +203,28 @@ public class TwitterSentimentClassifierImpl implements ITwitterSentimentClassifi
 			
 			trainingData.add(inst);
 		}
+	}
+	
+	/**
+	 * Trains the classifier with the currently set training data.
+	 * @throws ClassifierException
+	 */
+	public void train() throws ClassifierException {
+		if (trainingData == null) {
+			throw new IllegalStateException("Couldn't train classifier - no processed training data available");
+		}
 		
 		logger.debug("## Train the classifier.");
 		
-		// train the classifier
-		classifier = new SMO();
+		// instantiate classifier
+		try {
+			classifier = classifierType.newInstance();
+		} catch (InstantiationException | IllegalAccessException ex) {
+			logger.error("Couldn't instantiate classifier of type '"+classifierType.getName()+"'", ex);
+			throw new ClassifierException("Couldn't instantiate classifier", ex);
+		}
+		
+		// build (train) the classifier
 		try {
 			classifier.buildClassifier(trainingData);
 		} catch (Exception ex) {
@@ -205,34 +232,59 @@ public class TwitterSentimentClassifierImpl implements ITwitterSentimentClassifi
 			throw new ClassifierException("Failed on building the classifier", ex);
 		}
 		
-		// export training data
-		if (exportTrainingData) {
-			try {
-				exportInstancesToArffFile(trainingData, trainingDataOutputFile);
-			} catch (IOException ex) {
-				logger.warn("Couldn't write attributes to file.", ex);
-			}
-		}
-		
 		// export trained classifier
 		if (exportTrainedClassifier) {
 			try {
-				exportObject(attributes, attributesOutputFile);
-				exportObject(classifier, classifierOutputFile);
+				exportTrainedClassifier();
 			} catch (IOException ex) {
-				logger.warn("Couldn't export attributes and trained classifier to files.", ex);
+				logger.warn("Couldn't export trained classifier to files.", ex);
 			}
 		}
 	}
 	
-	@Override
-	public boolean isTrained() {
-		if (classifier == null) {
-			if (importTrainedClassifier) {
-				tryRestoringTrainedClassifier();
-			}
+	/**
+	 * Exports the processed training data to an ARFF file. 
+	 * Caution: If the file already exists, it will get overwritten!
+	 * @param outputFileName the output file name
+	 * @throws IOException
+	 */
+	public void exportProcessedTrainingDataToArffFile(String outputFileName) throws IOException {
+		if (trainingData == null) {
+			throw new IllegalStateException("Processed training data not available -- please call train first");
 		}
-		return (classifier != null);
+		
+		ArffSaver arffSaver = new ArffSaver();
+		arffSaver.setInstances(trainingData);
+		
+		createExportDirectory();
+		arffSaver.setFile(new File(exportDirectory, outputFileName));
+		arffSaver.writeBatch();
+	}
+	
+	/**
+	 * Loads processed training data from an ARFF file.
+	 * @param inputArffFile the ARFF file to load.
+	 * @throws IOException
+	 */
+	public void loadProcessedTrainingDataFromArffFile(File inputArffFile) throws IOException {
+		// load training data
+		ArffLoader arffLoader = new ArffLoader();
+		arffLoader.setFile(inputArffFile);
+		trainingData = arffLoader.getDataSet();
+		trainingData.setClassIndex(0);
+		
+		// re-populate attribute vector
+		attributes = new FastVector(INIT_ATTRIBUTES_CAPACITY);
+		
+		// add class attribute
+		Attribute classAttr = createClassAttribute();
+		attributes.addElement(classAttr);
+		
+		// add other attributes of training set
+		for (Enumeration<Attribute> e = trainingData.enumerateAttributes(); e.hasMoreElements();) {
+			Attribute attr = e.nextElement();
+			attributes.addElement(attr);
+		}
 	}
 	
 	@Override
@@ -241,18 +293,7 @@ public class TwitterSentimentClassifierImpl implements ITwitterSentimentClassifi
 			throw new IllegalStateException("classifier hasn't been trained yet");
 		}
 		
-		// create vector of attributes
-		FastVector wekaAttrs = new FastVector(100);
-		
-		// add class attribute
-		Attribute classAttr = createClassAttribute();
-		wekaAttrs.addElement(classAttr);
-		
-		// set all attributes to zero
-		wekaAttrs.appendElements(attributes);
-		
-		Instances testData = new Instances(classifierName, wekaAttrs, 100);
-		testData.setClass(classAttr);
+		Instances testData = new Instances(classifierName, attributes, 100);
 		
 		SparseInstance inst = new SparseInstance(testData.numAttributes());
 		inst.setDataset(testData);
@@ -298,7 +339,7 @@ public class TwitterSentimentClassifierImpl implements ITwitterSentimentClassifi
 		classValues.addElement(Sentiment.NEGATIVE.toString());
 		classValues.addElement(Sentiment.NEUTRAL.toString());
 		classValues.addElement(Sentiment.POSITIVE.toString());
-		return new Attribute("@@class@@", classValues);
+		return new Attribute("__class__", classValues);
 	}
 	
 	/**
@@ -313,31 +354,15 @@ public class TwitterSentimentClassifierImpl implements ITwitterSentimentClassifi
 	}
 	
 	/**
-	 * Creates a directory path if it doesn't exist yet.
-	 * @param path the directory path
-	 * @throws IllegalArgumentException if the path doesn't point to a directory
-	 * @throws IOException if the path doesn't exist but couldn't be created
+	 * Exports the trained classifier to files.
+	 * @throws IOException
 	 */
-	private void createDirectoryPath(File path) throws IOException {
-		if (!path.exists()) {
-			if (!path.mkdirs()) {
-				throw new IOException("Couldn't create directory path '"+path.getPath()+"'");
-			}
+	private void exportTrainedClassifier() throws IOException {
+		if (!isTrained()) {
+			throw new IllegalStateException("classifier hasn't been trained yet");
 		}
-	}
-	
-	/**
-	 * Exports an instances object to an ARFF file.
-	 * @param instances the instances to export
-	 * @param out the output file -- will be overwritten if it exists already!
-	 */
-	private void exportInstancesToArffFile(Instances instances, File out) throws IOException {
-		createDirectoryPath(out.getParentFile());
-		
-		ArffSaver arffSaver = new ArffSaver();
-		arffSaver.setInstances(instances);
-		arffSaver.setFile(out);
-		arffSaver.writeBatch();
+		exportObject(attributes, attributesOutputFileName);
+		exportObject(classifier, classifierOutputFileName);
 	}
 	
 	/**
@@ -346,10 +371,23 @@ public class TwitterSentimentClassifierImpl implements ITwitterSentimentClassifi
 	 * @param out the output file -- will be overwritten if it exists already!
 	 * @throws IOException 
 	 */
-	private void exportObject(Object obj, File out) throws IOException {
-		createDirectoryPath(out.getParentFile());
+	private void exportObject(Object obj, String outputFileName) throws IOException {
+		createExportDirectory();
+		File out = new File(exportDirectory, outputFileName);
 		try (ObjectOutputStream modelOutStream = new ObjectOutputStream(new FileOutputStream(out))) {
 			modelOutStream.writeObject(obj);
+		}
+	}
+	
+	/**
+	 * Creates the export directory if it doesn't exist.
+	 */
+	private void createExportDirectory() throws IOException {
+		// create export directory if not exists
+		if (!exportDirectory.exists()) {
+			if (!exportDirectory.mkdirs()) {
+				throw new IOException("Couldn't create export directory '"+exportDirectory.getPath()+"'");
+			}
 		}
 	}
 	
@@ -371,7 +409,10 @@ public class TwitterSentimentClassifierImpl implements ITwitterSentimentClassifi
 	/**
 	 * Tries to restore a previously trained classifier.
 	 */
-	private void tryRestoringTrainedClassifier() {
+	private void restoreTrainedClassifier() {
+		File attributesOutputFile = getAttributesOutputFile();
+		File classifierOutputFile = getClassifierOuptutFile();
+		
 		// try to load existing training data set
 		if (attributesOutputFile.exists()) {
 			try {
@@ -423,19 +464,19 @@ public class TwitterSentimentClassifierImpl implements ITwitterSentimentClassifi
 	}
 	
 	/**
-	 * Returns whether the classifier will export the training data to an ARFF file before training.
-	 * @return true if the classifier will export the training data before training, false otherwise.
+	 * Returns the directory used by the classifier to export files.
+	 * @return the directory used by the classifier to export files.
 	 */
-	public boolean getExportTrainingData() {
-		return exportTrainingData;
+	public File getExportDirectory() {
+		return exportDirectory;
 	}
 	
 	/**
-	 * Sets the flag whether the classifier will export the training data to an ARFF file before training.
-	 * @param val the new flag value
+	 * Sets the directory used by the classifier to export files.
+	 * @param dir the new export directory
 	 */
-	public void setExportTrainingData(boolean val) {
-		exportTrainingData = val;
+	public void setExportDirectory(File dir) {
+		exportDirectory = dir;
 	}
 	
 	/**
@@ -443,15 +484,23 @@ public class TwitterSentimentClassifierImpl implements ITwitterSentimentClassifi
 	 * @return a file object of the output file for attributes data.
 	 */
 	public File getAttributesOutputFile() {
-		return attributesOutputFile;
+		return new File(exportDirectory, attributesOutputFileName);
 	}
 	
 	/**
-	 * Sets the output file for attributes data.
-	 * @param out the new output file
+	 * Returns the file name used to export the attributes data.
+	 * @return the file name used to export the attributes data.
 	 */
-	public void setAttributesOutputFile(File out) {
-		attributesOutputFile = out;
+	public String getAttributesOutputFileName() {
+		return attributesOutputFileName;
+	}
+	
+	/**
+	 * Sets the file name used to export the attributes data.
+	 * @param fileName the new file name
+	 */
+	public void setAttributesOutputFileName(String fileName) {
+		attributesOutputFileName = fileName;
 	}
 	
 	/**
@@ -459,31 +508,26 @@ public class TwitterSentimentClassifierImpl implements ITwitterSentimentClassifi
 	 * @return a file object of the output file for the trained classifier.
 	 */
 	public File getClassifierOuptutFile() {
-		return classifierOutputFile;
+		return new File(exportDirectory, classifierOutputFileName);
 	}
 	
 	/**
-	 * Sets the output file for the trained classifier.
-	 * @param out the new output file
+	 * Returns the file name used to export the trained classifier.
+	 * @return the file name used to export the trained classifier.
 	 */
-	public void setClassifierOuptutFile(File out) {
-		classifierOutputFile = out;
+	public String getClassifierOuptutFileName() {
+		return classifierOutputFileName;
 	}
 	
 	/**
-	 * Returns a file object of the output file for attributes.
-	 * @return a file object of the output file for attributes.
+	 * Sets the file name used to export the trained classifier.
+	 * @param fileName the new file name
 	 */
-	public File getTrainingDataOutputFile() {
-		return trainingDataOutputFile;
+	public void setClassifierOutputFileName(String fileName) {
+		classifierOutputFileName = fileName;
 	}
-	
-	/**
-	 * Sets the output file for the training data AIFF file.
-	 * @param out the new output file
-	 */
-	public void setTrainingDataOutputFile(File out) {
-		trainingDataOutputFile = out;
+
+	private Exception IllegalStateException(String processed_training) {
+		throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
 	}
-	
 }

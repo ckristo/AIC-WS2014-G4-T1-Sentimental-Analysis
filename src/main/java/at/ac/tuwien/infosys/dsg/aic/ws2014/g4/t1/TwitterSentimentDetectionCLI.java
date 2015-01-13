@@ -16,7 +16,7 @@ import at.ac.tuwien.infosys.dsg.aic.ws2014.g4.t1.classifier.TwitterSentimentClas
 import java.util.Collection;
 import java.util.HashSet;
 
-public class TwitterSentimentDetection {
+public class TwitterSentimentDetectionCLI {
 
 	public static void main(String[] args) {
 		String line = "";
@@ -52,7 +52,7 @@ public class TwitterSentimentDetection {
 				} else {
 					System.out.println("*:> Training Data...");
 					String[] arg = { line.split(" ")[1] };
-					Sentiment140TrainClassifier.main(arg);
+					Sentiment140DataLoader.main(arg);
 				}
 			}
 
