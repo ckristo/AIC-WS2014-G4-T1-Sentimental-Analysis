@@ -2,6 +2,8 @@ package at.ac.tuwien.infosys.dsg.aic.ws2014.g4.t1;
 
 import at.ac.tuwien.infosys.dsg.aic.ws2014.g4.t1.preprocessing.IPreprocessor;
 import at.ac.tuwien.infosys.dsg.aic.ws2014.g4.t1.preprocessing.PreprocessorImpl;
+import at.ac.tuwien.infosys.dsg.aic.ws2014.g4.t1.preprocessing.SentiWordNetDictionary;
+import at.ac.tuwien.infosys.dsg.aic.ws2014.g4.t1.preprocessing.SentiWordNetDictionary.WordNetPosition;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -191,4 +193,16 @@ public class PreprocessorTest {
 		assertTrue(tokens.contains("testing"));
 		assertTrue(tokens.contains("trees"));
 	}*/
+	
+	@Test
+	public void testSentiWordNetDictionary() {
+		SentiWordNetDictionary dict = SentiWordNetDictionary.getInstance();
+		double sentiment;
+		
+		sentiment = dict.getSentimentValue("good", WordNetPosition.A);
+		assertTrue(sentiment > 0.0d);
+		
+		sentiment = dict.getSentimentValue("bad", WordNetPosition.A);
+		assertTrue(sentiment < 0.0d);
+	}
 }

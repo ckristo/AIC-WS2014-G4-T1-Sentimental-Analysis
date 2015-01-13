@@ -17,14 +17,9 @@ import org.apache.logging.log4j.Logger;
 public class SpellDictionary {
 	
 	/**
-	 * The dictionary file for the spell dictionary.
+	 * The name of the resource file to load the dictionary from.
 	 */
-	private static final String DICT_FILE = "/spell.txt";
-	
-	/**
-	 * The threshold (edit distance) for the spell correction.
-	 */
-	private static final int SUGGESTION_THRESHOLD = 0; // has no effect
+	private static final String DICT_FILE_RESOURCE = "/spell.txt";
 	
 	/**
 	 * Logger instance.
@@ -69,25 +64,26 @@ public class SpellDictionary {
 		try {
 			instance = new SpellDictionary();
 			instance.dictionary = new SpellDictionaryHashMap();
-			instance.loadDictionary();
+			instance.loadDictionaryResource(DICT_FILE_RESOURCE);
 		} catch (IOException ex) {
 			logger.error("Couldn't load spell dictionary file", ex);
 		}
 	}
 	
 	/**
-	 * Loads the dictionary file.
+	 * Loads the dictionary from a resource.
+	 * @param resourceName the dictionary file resource
 	 * @throws 
-	 *   - FileNotFoundException if the spell dictionary file doesn't exist
-	 *   - IOException if the spell dictionary file couldn't be read
+	 *   - FileNotFoundException if the dictionary file doesn't exist
+	 *   - IOException if the dictionary file couldn't be read
 	 */
-	private void loadDictionary() throws IOException {
-		// load dictionary file
-		InputStream is = SpellDictionary.class.getResourceAsStream(DICT_FILE);
+	private void loadDictionaryResource(String resourceName) throws IOException {
+		InputStream is = SpellDictionary.class.getResourceAsStream(resourceName);
 		if (is == null) {
-			throw new FileNotFoundException("Spell dictionary resource '"+DICT_FILE+"' couldn't be found!");
+			throw new FileNotFoundException("Spell dictionary resource '"+resourceName+"' couldn't be found!");
+		} else {
+			dictionary.addDictionary(new InputStreamReader(is));
 		}
-		dictionary.addDictionary(new InputStreamReader(is));
 	}
 	
 	/**
@@ -105,7 +101,7 @@ public class SpellDictionary {
 	 * @return the replacement suggestion or null if no suggestions was found.
 	 */
 	public String getSuggestion(String word) {
-		List<Word> suggestions = dictionary.getSuggestions(word, SUGGESTION_THRESHOLD, distMatrix);
+		List<Word> suggestions = dictionary.getSuggestions(word, 0, distMatrix); // threshold has no effect!
 		if (suggestions.size() > 0) {
 			return suggestions.get(0).getWord();
 		} else {

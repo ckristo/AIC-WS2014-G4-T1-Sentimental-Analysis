@@ -15,9 +15,9 @@ import org.apache.logging.log4j.Logger;
 public class StopwordsDictionary {
 
 	/**
-	 * The file to load the stopwords from.
+	 * The name of the resource file to load the dictionary from.
 	 */
-	private static final String DICT_FILE = "/stopwords.txt";
+	private static final String DICT_FILE_RESOURCE = "/stopwords.txt";
 	
 	/**
 	 * Logger instance.
@@ -25,9 +25,9 @@ public class StopwordsDictionary {
 	private static final Logger logger = LogManager.getLogger(StopwordsDictionary.class);
 	
 	/**
-	 * The set instance containing all (loaded) stopwords.
+	 * The set instance containing all (loaded) dictionary entries.
 	 */
-	private final HashSet<String> stopwords = new HashSet<>();
+	private final HashSet<String> dictionary = new HashSet<>();
 	
 	/**
 	 * The singleton instance.
@@ -56,29 +56,37 @@ public class StopwordsDictionary {
 	private static void init() {
 		instance = new StopwordsDictionary();
 		try {
-			instance.loadFile();
+			instance.loadDictionaryResource(DICT_FILE_RESOURCE);
 		} catch (IOException ex) {
 			logger.error("Couldn't load stopwords dictionary file", ex);
 		}
 	}
 	
 	/**
-	 * Loads the stopwords dictionary file into the stopwords set.
+	 * Loads the dictionary file from a resource.
 	 * @throws 
-	 *   - FileNotFoundException if the stopwords dictionary file doesn't exist
-	 *   - IOException if the stopwords dictionary file couldn't be read
+	 *   - FileNotFoundException if the dictionary file doesn't exist
+	 *   - IOException if the dictionary file couldn't be read
 	 */
-	private void loadFile() throws IOException {
-		// create stream for resource file
-		InputStream is = PreprocessorImpl.class.getResourceAsStream(DICT_FILE);
+	private void loadDictionaryResource(String resourceName) throws IOException {
+		InputStream is = PreprocessorImpl.class.getResourceAsStream(resourceName);
 		if (is == null) {
-			throw new FileNotFoundException("Stopwords dictionary file doesn't exist.");
+			throw new FileNotFoundException("Stopwords dictionary file '"+resourceName+"' doesn't exist.");
+		} else {
+			loadDictionary(is);
 		}
-		// read file line by line
-		BufferedReader reader = new BufferedReader(new InputStreamReader(is));
+	}
+	
+	/**
+	 * Loads the dictionary from an input stream.
+	 * @param inputStream the input stream to load
+	 * @throws IOException
+	 */
+	private void loadDictionary(InputStream inputStream) throws IOException {
+		BufferedReader reader = new BufferedReader(new InputStreamReader(inputStream));
 		String line;
 		while ((line = reader.readLine()) != null) {
-			stopwords.add(line.toLowerCase());
+			dictionary.add(line.toLowerCase());
 		}
 	}
 	
@@ -88,6 +96,6 @@ public class StopwordsDictionary {
 	 * @return true if the string is a stopword (exact match) or false otherwise.
 	 */
 	public boolean containsWord(String str) {
-		return stopwords.contains(str.toLowerCase());
+		return dictionary.contains(str.toLowerCase());
 	}
 }

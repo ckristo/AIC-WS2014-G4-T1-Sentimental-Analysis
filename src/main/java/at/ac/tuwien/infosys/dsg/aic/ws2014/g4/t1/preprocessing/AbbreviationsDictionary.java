@@ -13,9 +13,9 @@ import org.apache.logging.log4j.Logger;
 public class AbbreviationsDictionary {
 
 	/**
-	 * The file to load the abbreviations from.
+	 * The name of the resource file to load the dictionary from.
 	 */
-	private static final String DICT_FILE = "/abbreviations.txt";
+	private static final String DICT_FILE_RESOURCE = "/abbreviations.txt";
 	
 	/**
 	 * The string used to delimit the two elements of an abbreviation.
@@ -28,9 +28,9 @@ public class AbbreviationsDictionary {
 	private static final Logger logger = LogManager.getLogger(AbbreviationsDictionary.class);
 	
 	/**
-	 * The set instance containing all (loaded) abbreviations.
+	 * The set instance containing all (loaded) dictionary entries.
 	 */
-	private final HashMap<String, String> abbreviations = new HashMap<>();
+	private final HashMap<String, String> dictionary = new HashMap<>();
 	
 	/**
 	 * The singleton instance.
@@ -59,31 +59,45 @@ public class AbbreviationsDictionary {
 	private static void init() {
 		instance = new AbbreviationsDictionary();
 		try {
-			instance.loadFile();
+			instance.loadDictionaryResource(DICT_FILE_RESOURCE);
 		} catch (IOException ex) {
 			logger.error("Couldn't load abbreviations dictionary file", ex);
 		}
 	}
 	
 	/**
-	 * Loads the abbreviation dictionary file into the abbreviation set.
+	 * Loads the dictionary file from a resource.
+	 * @param resourceName the dictionary file resource
 	 * @throws 
-	 *   - FileNotFoundException if the abbreviation dictionary file doesn't exist
-	 *   - IOException if the abbreviation dictionary file couldn't be read
+	 *   - FileNotFoundException if the dictionary file doesn't exist
+	 *   - IOException if the dictionary file couldn't be read
 	 */
-	private void loadFile() throws IOException {
-		// create stream for resource file
-		InputStream is = PreprocessorImpl.class.getResourceAsStream(DICT_FILE);
+	private void loadDictionaryResource(String resourceName) throws IOException {
+		InputStream is = PreprocessorImpl.class.getResourceAsStream(resourceName);
 		if (is == null) {
-			throw new FileNotFoundException("Abbreviation dictionary file doesn't exist.");
+			throw new FileNotFoundException("Abbreviation dictionary resource '"+resourceName+"' doesn't exist.");
+		} else {
+			loadDictionary(is);
 		}
-		// read file line by line
-		BufferedReader reader = new BufferedReader(new InputStreamReader(is));
+	}
+	
+	/**
+	 * Loads the dictionary from an input stream.
+	 * @param inputStream the input stream to load
+	 * @throws IOException
+	 */
+	private void loadDictionary(InputStream inputStream) throws IOException {
+		BufferedReader reader = new BufferedReader(new InputStreamReader(inputStream));
 		String line;
+		int lineNr = 0;
 		while ((line = reader.readLine()) != null) {
+			lineNr++;
+			
 			String[] tmp = line.split(DELIM_STR);
-			if (tmp.length >= 2) {
-				abbreviations.put(tmp[0].toLowerCase(), tmp[1].toLowerCase());
+			if (tmp.length == 2) {
+				dictionary.put(tmp[0].toLowerCase(), tmp[1].toLowerCase());
+			} else {
+				throw new IllegalArgumentException("Invalid dictionary entry, line: "+lineNr);
 			}
 		}
 	}
@@ -94,7 +108,7 @@ public class AbbreviationsDictionary {
 	 * @return true if the string is known abbreviation (exact match) or false otherwise.
 	 */
 	public boolean containsWord(String str) {
-		return abbreviations.containsKey(str.toLowerCase());
+		return dictionary.containsKey(str.toLowerCase());
 	}
 	
 	/**
@@ -103,6 +117,6 @@ public class AbbreviationsDictionary {
 	 * @return the long form for a known abbreviation, or null otherwise.
 	 */
 	public String getLongForm(String str) {
-		return abbreviations.get(str.toLowerCase());
+		return dictionary.get(str.toLowerCase());
 	}
 }
