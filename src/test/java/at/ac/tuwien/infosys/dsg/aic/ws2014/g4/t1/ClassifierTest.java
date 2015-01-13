@@ -4,6 +4,8 @@ import at.ac.tuwien.infosys.dsg.aic.ws2014.g4.t1.classifier.Sentiment;
 import at.ac.tuwien.infosys.dsg.aic.ws2014.g4.t1.classifier.TwitterSentimentClassifierImpl;
 import at.ac.tuwien.infosys.dsg.aic.ws2014.g4.t1.helper.ApplicationConfig;
 import at.ac.tuwien.infosys.dsg.aic.ws2014.g4.t1.helper.Constants;
+import at.ac.tuwien.infosys.dsg.aic.ws2014.g4.t1.preprocessing.SentiWordNetDictionary;
+import at.ac.tuwien.infosys.dsg.aic.ws2014.g4.t1.preprocessing.SentiWordNetDictionary.WordNetPosition;
 import java.io.File;
 import java.io.InputStream;
 import java.util.HashMap;
@@ -16,6 +18,7 @@ import org.junit.Test;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.*;
 import org.junit.After;
+import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -150,5 +153,17 @@ public class ClassifierTest {
 		
 		assertThat(c1, is(equalTo(c2)));
 		assertThat(c2, is(equalTo(c3)));
+	}
+	
+	@Test
+	public void testSentiWordNetDictionary() {
+		SentiWordNetDictionary dict = SentiWordNetDictionary.getInstance();
+		double sentiment;
+		
+		sentiment = dict.getSentimentValue("good", WordNetPosition.A);
+		assertTrue(sentiment > 0.0d);
+		
+		sentiment = dict.getSentimentValue("bad", WordNetPosition.A);
+		assertTrue(sentiment < 0.0d);
 	}
 }

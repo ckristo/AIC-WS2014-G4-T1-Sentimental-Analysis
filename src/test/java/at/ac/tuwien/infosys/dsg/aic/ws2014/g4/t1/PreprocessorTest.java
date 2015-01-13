@@ -210,16 +210,4 @@ public class PreprocessorTest {
 		assertTrue(tokens.contains("trees"));
 		assertTrue(tokens.contains("loose"));
 	}
-	
-	@Test
-	public void testSentiWordNetDictionary() {
-		SentiWordNetDictionary dict = SentiWordNetDictionary.getInstance();
-		double sentiment;
-		
-		sentiment = dict.getSentimentValue("good", WordNetPosition.A);
-		assertTrue(sentiment > 0.0d);
-		
-		sentiment = dict.getSentimentValue("bad", WordNetPosition.A);
-		assertTrue(sentiment < 0.0d);
-	}
 }
