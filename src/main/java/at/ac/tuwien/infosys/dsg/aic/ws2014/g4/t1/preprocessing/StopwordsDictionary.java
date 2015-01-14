@@ -12,7 +12,7 @@ import org.apache.logging.log4j.Logger;
 /**
  * A simple stopwords dictionary.
  */
-public class StopwordsDictionary {
+public class StopwordsDictionary implements IDictionary {
 
 	/**
 	 * The name of the resource file to load the dictionary from.
@@ -86,7 +86,7 @@ public class StopwordsDictionary {
 		BufferedReader reader = new BufferedReader(new InputStreamReader(inputStream));
 		String line;
 		while ((line = reader.readLine()) != null) {
-			dictionary.add(line.toLowerCase());
+			dictionary.add(line);
 		}
 	}
 	
@@ -95,7 +95,8 @@ public class StopwordsDictionary {
 	 * @param str the string to check
 	 * @return true if the string is a stopword (exact match) or false otherwise.
 	 */
-	public boolean containsWord(String str) {
-		return dictionary.contains(str.toLowerCase());
+	@Override
+	public boolean contains(String str) {
+		return dictionary.contains(str);
 	}
 }

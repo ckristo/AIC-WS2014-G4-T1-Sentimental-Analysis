@@ -7,6 +7,7 @@ import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.util.ArrayList;
 import java.util.List;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -14,7 +15,7 @@ import org.apache.logging.log4j.Logger;
 /**
  * A spell dictionary based on Jazzy.
  */
-public class SpellDictionary {
+public class SpellDictionary implements IDictionary {
 	
 	/**
 	 * The name of the resource file to load the dictionary from.
@@ -35,6 +36,14 @@ public class SpellDictionary {
 	 * The Jazzy spell dictionary implementation.
 	 */
 	private SpellDictionaryHashMap dictionary = null;
+	
+	/**
+	 * Allows to specify spell suggestions that should be ignored.
+	 */
+	private final List<String> SUGGESTIONS_TO_IGNORE = new ArrayList<>();
+	{
+		SUGGESTIONS_TO_IGNORE.add("h");
+	}
 	
 	/**
 	 * Matrix used to generate distance values for spell correction suggestions.
@@ -91,8 +100,9 @@ public class SpellDictionary {
 	 * @param word the word to check.
 	 * @return whether the word is present in the dictionary, false otherwise
 	 */
-	public boolean containsWord(String word) {
-		return dictionary.isCorrect(word.toLowerCase());
+	@Override
+	public boolean contains(String word) {
+		return dictionary.isCorrect(word);
  	}
 	
 	/**
@@ -102,10 +112,15 @@ public class SpellDictionary {
 	 */
 	public String getSuggestion(String word) {
 		List<Word> suggestions = dictionary.getSuggestions(word, 0, distMatrix); // threshold has no effect!
-		if (suggestions.size() > 0) {
-			return suggestions.get(0).getWord();
-		} else {
-			return null;
+		for (Word suggestion : suggestions) {
+			// check if spell suggestion should be ignored:
+			//   Jazzy sometimes suggests strange corrections (e.g. "*1" => "h") 
+			//   if it doesn't come up with suggestions based on edit distance 
+			//   (see SpellDictionaryASpell.addBestGuess)
+			if (!SUGGESTIONS_TO_IGNORE.contains(suggestion.getWord())) {
+				return suggestion.getWord();
+			}
 		}
+		return null;
 	}
 }

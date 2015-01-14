@@ -14,8 +14,11 @@ import org.apache.logging.log4j.Logger;
  * Dictionary for SentiWordNet data (http://sentiwordnet.isti.cnr.it).
  * Heavily based on http://sentiwordnet.isti.cnr.it/code/SentiWordNetDemoCode.java
  */
-public class SentiWordNetDictionary {
+public class SentiWordNetDictionary implements IDictionary {
 	
+	/**
+	 * Enumeration for possible WordNet positions.
+	 */
 	public enum WordNetPosition {
 		A {
 			@Override
@@ -202,12 +205,27 @@ public class SentiWordNetDictionary {
 	}
 	
 	/**
+	 * Checks if a given word is present in the dictionary (trying all possible positions).
+	 * @param word the word
+	 * @return true if the word is in the dictionary, false otherwise.
+	 */
+	@Override
+	public boolean contains(String word) {
+		for (WordNetPosition p : WordNetPosition.values()) {
+			if (dictionary.containsKey(createKey(word, p))) {
+				return true;
+			}
+		}
+		return false;
+	}
+	
+	/**
 	 * Checks if a given word/position is present in the dictionary.
 	 * @param word the word
 	 * @param position the position
 	 * @return true if the word/position is present in the dictionary, false otherwise
 	 */
-	public boolean containsWord(String word, WordNetPosition position) {
+	public boolean contains(String word, WordNetPosition position) {
 		return dictionary.containsKey(createKey(word, position));
 	}
 	

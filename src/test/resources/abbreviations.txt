@@ -1,2 +1,2 @@
-LOL|laughing out loud
-WTH|what the hell
+LOL	laughing out loud
+WTH	what the hell

@@ -1,148 +1,135 @@
-:)|__++SMILEY_HAPPY++__
-:-)|__++SMILEY_HAPPY++__
-:D|__++SMILEY_HAPPY++__
-:-D|__++SMILEY_HAPPY++__
-X-D|__++SMILEY_HAPPY++__
-XD|__++SMILEY_HAPPY++__
-X-)|__++SMILEY_HAPPY++__
-X)|__++SMILEY_HAPPY++__
-:')|__++SMILEY_HAPPY++__
-:'D|__++SMILEY_HAPPY++__
-:'-)|__++SMILEY_HAPPY++__
-:'-D|__++SMILEY_HAPPY++__
-=)|__++SMILEY_HAPPY++__
-=D|__++SMILEY_HAPPY++__
-;)|__++SMILEY_HAPPY++__
-;-)|__++SMILEY_HAPPY++__
-:))|__++SMILEY_HAPPY++__
-<3|__++SMILEY_HAPPY++__
-<33|__++SMILEY_HAPPY++__
-<333|__++SMILEY_HAPPY++__
-^^|__++SMILEY_HAPPY++__
-:(|___++SMILEY_SAD++___
-:-(|___++SMILEY_SAD++___
-:'(|___++SMILEY_SAD++___
-:'-(|___++SMILEY_SAD++___
-:C|___++SMILEY_SAD++___
-:-C|___++SMILEY_SAD++___
-X-(|___++SMILEY_SAD++___
-(:-(|___++SMILEY_SAD++___
-AFAIK|as far as I know
-BFN|bye for now
-BR|best regards
-BTW|by the way
-DM|direct message
-EM|email
-FB|facebook
-FF|follow friday
-FFS|for fuck's sake
-FML|fuck my life
-FTF|face to face
-FTL|for the loss
-FTW|for the win
-FWD|forward
-FWIW|for what it's worth
-HT|hat tip
-HTH|hope that helps
-IMHO|in my humble opinion
-IMO|in my opinion
-IRL|in real life
-JV|joint venture
-J/K|just kidding
-LI|linkedin
-LMAO|laughing my ass off
-LMK|let me know
-LOL|laughing out loud
-MT|modified tweet
-NSFW|not safe for work
-OH|overheard
-OMFG|oh my fucking god
-OMG|oh my god
-PRT|partial retweet
-RE|reply
-RR|re-run
-RT|retweet
-RTF|read the faq
-RTFM|read the fucking manual
-RTHX|thanks for the retweet
-SNAFU|situation normal all fucked up
-SOB|son of a bitch
-STFU|shut the fuck up
-TMB|tweet me back
-TMI|too much information
-WTF|what the fuck
-WTH|what the hell
-YMMV|your mileage may vary
-YW|you're welcome
-TIL|today i learned
-NB|nota bene
-ICYMI|in case you missed IT
-CX|correction
-RTQ|read the question
-STFW|search the fucking web
-TL|timeline
-TL;DR|too long; didn't read
-TT|translated tweet
-RLRT|real life retweet
-GR8|great
-BG|background
-LMBO|laughing my butt off
-NP|no problem
-PLZ|please
-ROFL|rolling on the floor laughing
-TTYS|talk to you soon
-TTYL|talk to you later
-TY|thank you
-AFK|away from keyboard
-ASAP|as soon as possible
-ATM|at the moment
-B/F|boyfriend
-BF|boyfriend
-B/G|background
-BG|background
-B/C|because
-BC|because
-CU|see you
-CYA|see you
-DL|download
-EOD|end of day
-EOL|end of life
-F2F|face to face
-FOAF|friend of a friend
-FU|fuck you
-FYA|for your amusement
-FYI|for your information
-GL|good luck
-GR8|great
-HF|have fun
-HTH|hope this helps
-IM|instant message
-JFF|just for fun
-JJ|Just joking
-J/J|Just joking
-K|Okay
-KK|Okay
-K/B|Keyboard
-KB|Keyboard
-MGMT|management
-MKAY|okay
-MSG|message
-N1|nice one
-NP|no problem
-PIC|picture
-PLS|please
-PLZ|please
-RIP|rest in peace
-SRSLY|seriously
-SRY|sorry
-STFU|shut the fuck up
-TBC|to be continued
-TBH|to be honest
-TBD|To be determined
-THX|thanks
-TL|too long
-W/B|welcome back
-W/E|whatever
-WE|whatever
-WRT|with regard to
-W/O|without
+AFAIK	as far as I know
+AFK	away from keyboard
+ASAP	as soon as possible
+ATM	at the moment
+B/C	because
+B/F	boyfriend
+B/G	background
+BC	because
+BF	boyfriend
+BFN	bye for now
+BG	background
+BG	background
+BR	best regards
+BTW	by the way
+COS	because
+CU	see you
+CUZ	because
+CX	correction
+CYA	see you
+DL	download
+DM	direct message
+DUNNO	don't know
+EM	email
+EOD	end of day
+EOL	end of life
+F2F	face to face
+FB	facebook
+FF	follow friday
+FFS	for fuck's sake
+FML	fuck my life
+FOAF	friend of a friend
+FTF	face to face
+FTL	for the loss
+FTW	for the win
+FU	fuck you
+FWD	forward
+FWIW	for what it's worth
+FYA	for your amusement
+FYI	for your information
+GEEZ	jesus
+GL	good luck
+GONNA	going to
+GOTTA	got to
+GR8	great
+GR8	great
+HF	have fun
+HT	hat tip
+HTH	hope that helps
+HTH	hope this helps
+ICYMI	in case you missed IT
+IDK	i don't know
+IM	instant message
+IMHO	in my humble opinion
+IMO	in my opinion
+IRL	in real life
+J/J	just joking
+J/K	just kidding
+JFF	just for fun
+JJ	just joking
+JV	joint venture
+K	okay
+K/B	keyboard
+KB	keyboard
+KINDA	kind of
+KK	okay
+LI	linkedin
+LMAO	laughing my ass off
+LMBO	laughing my butt off
+LMK	let me know
+LOL	laughing out loud
+LUV	like
+MGMT	management
+MKAY	okay
+MSG	message
+MT	modified tweet
+N1	nice one
+NB	nota bene
+NP	no problem
+NP	no problem
+NSFW	not safe for work
+OH	overheard
+OMFG	oh my fucking god
+OMG	oh my god
+PIC	picture
+PLS	please
+PLZ	please
+PLZ	please
+PPL	people
+PRT	partial retweet
+RE	reply
+RIP	rest in peace
+RLRT	real life retweet
+ROFL	rolling on the floor laughing
+RR	re-run
+RT	retweet
+RTF	read the faq
+RTFM	read the fucking manual
+RTHX	thanks for the retweet
+RTQ	read the question
+RYT	right, alright
+SNAFU	situation normal all fucked up
+SOB	son of a bitch
+SRSLY	seriously
+SRY	sorry
+STFU	shut the fuck up
+STFU	shut the fuck up
+STFW	search the fucking web
+TBC	to be continued
+TBD	to be determined
+TBH	to be honest
+THRU	through
+THX	thanks
+TIL	today i learned
+TL	timeline
+TL	too long
+TL;DR	too long; didn't read
+TMB	tweet me back
+TMI	too much information
+TT	translated tweet
+TTYL	talk to you later
+TTYS	talk to you soon
+TY	thank you
+U	you
+UR	your
+W/B	welcome back
+W/E	whatever
+W/O	without
+WANNA	want to
+WE	whatever
+WRT	with regard to
+WTF	what the fuck
+WTH	what the hell
+WUDNT	would not
+YMMV	your mileage may vary
+YW	you're welcome

@@ -1,8 +1,9 @@
 ball
 house
 test
-loose
+lose
 hello
 testing
 trees
-h
+damn
+her

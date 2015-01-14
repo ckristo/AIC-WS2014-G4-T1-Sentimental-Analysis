@@ -2,8 +2,6 @@ package at.ac.tuwien.infosys.dsg.aic.ws2014.g4.t1;
 
 import at.ac.tuwien.infosys.dsg.aic.ws2014.g4.t1.preprocessing.IPreprocessor;
 import at.ac.tuwien.infosys.dsg.aic.ws2014.g4.t1.preprocessing.PreprocessorImpl;
-import at.ac.tuwien.infosys.dsg.aic.ws2014.g4.t1.preprocessing.SentiWordNetDictionary;
-import at.ac.tuwien.infosys.dsg.aic.ws2014.g4.t1.preprocessing.SentiWordNetDictionary.WordNetPosition;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -90,7 +88,7 @@ public class PreprocessorTest {
 	}
 
 	@Test
-	public void testReplaceAbbreviations_1() {
+	public void testReplaceAbbreviations() {
 		List<String> tokens = new ArrayList<>();
 		tokens.add("lol");
 		tokens.add("wth");
@@ -102,6 +100,22 @@ public class PreprocessorTest {
 		assertTrue(tokens.contains("loud"));
 		assertTrue(tokens.contains("what"));
 		assertTrue(tokens.contains("hell"));
+	}
+	
+	@Test
+	public void testReplaceSmileys() {
+		List<String> tokens = new ArrayList<>();
+		tokens.add(":)");
+		tokens.add(":(");
+
+		preprocessor.preprocess(tokens);
+
+		assertFalse(tokens.contains(":)"));
+		assertFalse(tokens.contains(":("));
+		
+		
+		assertTrue(tokens.contains(IPreprocessor.SMILEY_HAPPY_TOKEN));
+		assertTrue(tokens.contains(IPreprocessor.SMILEY_SAD_TOKEN));
 	}
 
 	@Test
@@ -120,13 +134,11 @@ public class PreprocessorTest {
 	@Test
 	public void testReplaceMisspelledWords_2() {
 		List<String> tokens = new ArrayList<>();
-		tokens.add(",");
-		
-		// TODO: extend this test case
+		tokens.add("*1");
 		
 		preprocessor.preprocess(tokens);
 		
-		assertFalse(tokens.contains(","));
+		assertTrue(tokens.contains("*1"));
 	}
 	
 	@Test
@@ -175,7 +187,7 @@ public class PreprocessorTest {
 	}
 
 	@Test
-	public void testRemoveSpecialCharTokens() {
+	public void testRemoveNonWordCharacterToken() {
 		List<String> tokens = new ArrayList<>();
 		tokens.add("...");
 		tokens.add("!!!");
@@ -198,16 +210,22 @@ public class PreprocessorTest {
 		tokens.add("teeeestinnnnng");
 		tokens.add("trees");
 		tokens.add("looooose");
+		tokens.add("damnnn");
+		tokens.add("herrr");
 
 		preprocessor.preprocess(tokens);
 
 		assertFalse(tokens.contains("helloooooo"));
 		assertFalse(tokens.contains("teeeestinnnnng"));
 		assertFalse(tokens.contains("looooose"));
+		assertFalse(tokens.contains("damnnn"));
+		assertFalse(tokens.contains("herrr"));
 		
 		assertTrue(tokens.contains("hello"));
 		assertTrue(tokens.contains("testing"));
 		assertTrue(tokens.contains("trees"));
-		assertTrue(tokens.contains("loose"));
+		assertTrue(tokens.contains("lose"));
+		assertTrue(tokens.contains("damn"));
+		assertTrue(tokens.contains("her"));
 	}
 }
