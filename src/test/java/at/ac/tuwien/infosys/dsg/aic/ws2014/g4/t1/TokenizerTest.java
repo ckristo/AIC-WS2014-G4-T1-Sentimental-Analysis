@@ -1,7 +1,7 @@
 package at.ac.tuwien.infosys.dsg.aic.ws2014.g4.t1;
 
-import at.ac.tuwien.infosys.dsg.aic.ws2014.g4.t1.preprocessing.ITokenizer;
-import at.ac.tuwien.infosys.dsg.aic.ws2014.g4.t1.preprocessing.TokenizerImpl;
+import at.ac.tuwien.infosys.dsg.aic.ws2014.g4.t1.preprocessor.ITokenizer;
+import at.ac.tuwien.infosys.dsg.aic.ws2014.g4.t1.preprocessor.TokenizerImpl;
 
 import java.util.List;
 

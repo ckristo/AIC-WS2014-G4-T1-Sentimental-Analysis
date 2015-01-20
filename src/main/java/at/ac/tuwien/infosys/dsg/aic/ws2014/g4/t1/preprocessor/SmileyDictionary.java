@@ -1,4 +1,4 @@
-package at.ac.tuwien.infosys.dsg.aic.ws2014.g4.t1.preprocessing;
+package at.ac.tuwien.infosys.dsg.aic.ws2014.g4.t1.preprocessor;
 
 import java.io.BufferedReader;
 import java.io.FileNotFoundException;
@@ -10,12 +10,33 @@ import java.util.HashMap;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-public class AbbreviationsDictionary implements IDictionary {
+public class SmileyDictionary implements IDictionary {
 
+	public enum Mood {
+		HAPPY {
+			@Override
+			public String toString() {
+				return "happy";
+			}
+		},
+		NEUTRAL {
+			@Override
+			public String toString() {
+				return "neutral";
+			}
+		},
+		SAD {
+			@Override
+			public String toString() {
+				return "sad";
+			}
+		},
+	}
+	
 	/**
 	 * The name of the resource file to load the dictionary from.
 	 */
-	private static final String DICT_FILE_RESOURCE = "/abbreviations.txt";
+	private static final String DICT_FILE_RESOURCE = "/smileys.txt";
 	
 	/**
 	 * The string used to delimit the two elements of an abbreviation.
@@ -25,28 +46,28 @@ public class AbbreviationsDictionary implements IDictionary {
 	/**
 	 * Logger instance.
 	 */
-	private static final Logger logger = LogManager.getLogger(AbbreviationsDictionary.class);
+	private static final Logger logger = LogManager.getLogger(SmileyDictionary.class);
 	
 	/**
 	 * The set instance containing all (loaded) dictionary entries.
 	 */
-	private final HashMap<String, String> dictionary = new HashMap<>();
+	private final HashMap<String, Mood> dictionary = new HashMap<>();
 	
 	/**
 	 * The singleton instance.
 	 */
-	private static AbbreviationsDictionary instance = null;
+	private static SmileyDictionary instance = null;
 	
 	/**
 	 * Constructor.
 	 */
-	private AbbreviationsDictionary() {}
+	private SmileyDictionary() {}
 	
 	/**
 	 * Returns the abbreviations dictionary instance.
 	 * @return the abbreviations dictionary instance.
 	 */
-	public static AbbreviationsDictionary getInstance() {
+	public static SmileyDictionary getInstance() {
 		if (instance == null) {
 			init();
 		}
@@ -57,11 +78,11 @@ public class AbbreviationsDictionary implements IDictionary {
 	 * Performs init of the abbreviations dictionary.
 	 */
 	private static void init() {
-		instance = new AbbreviationsDictionary();
+		instance = new SmileyDictionary();
 		try {
 			instance.loadDictionaryResource(DICT_FILE_RESOURCE);
 		} catch (IOException ex) {
-			logger.error("Couldn't load abbreviations dictionary file", ex);
+			logger.error("Couldn't load smiley dictionary file", ex);
 		}
 	}
 	
@@ -75,7 +96,7 @@ public class AbbreviationsDictionary implements IDictionary {
 	private void loadDictionaryResource(String resourceName) throws IOException {
 		InputStream is = PreprocessorImpl.class.getResourceAsStream(resourceName);
 		if (is == null) {
-			throw new FileNotFoundException("Abbreviation dictionary resource '"+resourceName+"' doesn't exist.");
+			throw new FileNotFoundException("Smiley dictionary resource '"+resourceName+"' doesn't exist.");
 		} else {
 			loadDictionary(is);
 		}
@@ -95,7 +116,15 @@ public class AbbreviationsDictionary implements IDictionary {
 			
 			String[] tmp = line.split(DELIM_STR);
 			if (tmp.length == 2) {
-				dictionary.put(tmp[0].toLowerCase(), tmp[1]);
+				// convert string to mood enum value
+				Mood m;
+				try {
+					m = Mood.valueOf(tmp[1]);
+				} catch (IllegalArgumentException ex) {
+					throw new IllegalArgumentException("Invalid dictionary entry -- mood value unknown, line: "+lineNr);
+				}
+				
+				dictionary.put(tmp[0], m);
 			} else {
 				throw new IllegalArgumentException("Invalid dictionary entry, line: "+lineNr);
 			}
@@ -103,21 +132,21 @@ public class AbbreviationsDictionary implements IDictionary {
 	}
 	
 	/**
-	 * Checks whether a given string is a known abbreviation.
-	 * @param str the string to check
-	 * @return true if the string is known abbreviation (exact match) or false otherwise.
+	 * Checks whether a given string is a known smiley.
+	 * @param smiley the string to check
+	 * @return true if the string is known smiley (exact match) or false otherwise.
 	 */
 	@Override
-	public boolean contains(String str) {
-		return dictionary.containsKey(str.toLowerCase());
+	public boolean contains(String smiley) {
+		return dictionary.containsKey(smiley);
 	}
 	
 	/**
-	 * Returns the long form for a known abbreviation.
-	 * @param str the string to check
-	 * @return the long form for a known abbreviation, or null otherwise.
+	 * Returns the mood for a smiley.
+	 * @param smiley the smiley
+	 * @return the mood value, or null if the smiley is not known
 	 */
-	public String getLongForm(String str) {
-		return dictionary.get(str.toLowerCase());
+	public Mood getMood(String smiley) {
+		return dictionary.get(smiley);
 	}
 }

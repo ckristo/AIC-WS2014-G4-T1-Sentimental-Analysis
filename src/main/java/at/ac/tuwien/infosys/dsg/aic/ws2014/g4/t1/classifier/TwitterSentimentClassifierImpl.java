@@ -3,10 +3,10 @@ package at.ac.tuwien.infosys.dsg.aic.ws2014.g4.t1.classifier;
 import at.ac.tuwien.infosys.dsg.aic.ws2014.g4.t1.helper.ApplicationConfig;
 import java.util.*;
 
-import at.ac.tuwien.infosys.dsg.aic.ws2014.g4.t1.preprocessing.IPreprocessor;
-import at.ac.tuwien.infosys.dsg.aic.ws2014.g4.t1.preprocessing.ITokenizer;
-import at.ac.tuwien.infosys.dsg.aic.ws2014.g4.t1.preprocessing.PreprocessorImpl;
-import at.ac.tuwien.infosys.dsg.aic.ws2014.g4.t1.preprocessing.TokenizerImpl;
+import at.ac.tuwien.infosys.dsg.aic.ws2014.g4.t1.preprocessor.IPreprocessor;
+import at.ac.tuwien.infosys.dsg.aic.ws2014.g4.t1.preprocessor.ITokenizer;
+import at.ac.tuwien.infosys.dsg.aic.ws2014.g4.t1.preprocessor.PreprocessorImpl;
+import at.ac.tuwien.infosys.dsg.aic.ws2014.g4.t1.preprocessor.TokenizerImpl;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;

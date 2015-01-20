@@ -1,4 +1,4 @@
-package at.ac.tuwien.infosys.dsg.aic.ws2014.g4.t1.preprocessing;
+package at.ac.tuwien.infosys.dsg.aic.ws2014.g4.t1.preprocessor;
 
 /**
  * Dictionary interface.

@@ -1,7 +1,7 @@
 package at.ac.tuwien.infosys.dsg.aic.ws2014.g4.t1;
 
-import at.ac.tuwien.infosys.dsg.aic.ws2014.g4.t1.preprocessing.IPreprocessor;
-import at.ac.tuwien.infosys.dsg.aic.ws2014.g4.t1.preprocessing.PreprocessorImpl;
+import at.ac.tuwien.infosys.dsg.aic.ws2014.g4.t1.preprocessor.IPreprocessor;
+import at.ac.tuwien.infosys.dsg.aic.ws2014.g4.t1.preprocessor.PreprocessorImpl;
 
 import java.util.ArrayList;
 import java.util.List;
