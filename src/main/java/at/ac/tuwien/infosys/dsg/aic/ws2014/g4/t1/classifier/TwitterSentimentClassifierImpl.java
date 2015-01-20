@@ -18,6 +18,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import twitter4j.Status;
 import weka.classifiers.Classifier;
+import weka.classifiers.Evaluation;
 import weka.classifiers.functions.SMO;
 import weka.core.*;
 import weka.core.converters.ArffLoader;
@@ -36,38 +37,37 @@ public class TwitterSentimentClassifierImpl implements ITwitterSentimentClassifi
 	/**
 	 * The initial capacity for the attributes vector.
 	 */
-	private static final int INIT_ATTRIBUTES_CAPACITY = 1000;
+	private static final int INIT_ATTRIBUTES_CAPACITY = 100;
+	
+	/**
+	 * The index where the class attribute can be found in the attributes vector.
+	 */
+	public static final int CLASS_ATTRIBUTE_INDEX = 0;
 	
 	/**
 	 * The classifier name.
 	 */
 	private final String classifierName;
-	
 	/**
 	 * The classifier type.
 	 */
-	private final Class<? extends Classifier> classifierType;
-	
+	private Class<? extends Classifier> classifierType = null;
 	/**
 	 * Indicator whether to export the trained classifier to a file.
 	 */
 	private boolean exportTrainedClassifier = false;
-	
 	/**
 	 * Indicator whether to import the trained classifier from a file.
 	 */
 	private boolean importTrainedClassifier = false;
-	
 	/**
 	 * The export directory path.
 	 */
 	private File exportDirectory = null;
-	
 	/**
 	 * The file name for exporting the classifier to file.
 	 */
 	private String classifierOutputFileName = null;
-	
 	/**
 	 * The file name for exporting the attributes data to file.
 	 */
@@ -77,22 +77,24 @@ public class TwitterSentimentClassifierImpl implements ITwitterSentimentClassifi
 	 * Tokenizer used for Tweet processing.
 	 */
 	private final ITokenizer tokenizer = new TokenizerImpl();
-	
 	/**
 	 * Preprocessor used for Tweet processing.
 	 */
 	private final IPreprocessor preprocessor = new PreprocessorImpl();
 	
 	/**
-	 * A set with all word attributes used by the Weka classifier.
-	 */
-	private FastVector attributes = null;
-	
-	/**
 	 * The processed training data used for training the Weka classifier.
 	 */
 	private Instances trainingData = null;
+	/**
+	 * The processed test data used for evaluating the Weka classifier.
+	 */
+	private Instances testData = null;
 	
+	/**
+	 * A set with all word attributes used by the Weka classifier.
+	 */
+	private FastVector attributes = null;
 	/**
 	 * The Weka classifier used for sentiment classification.
 	 */
@@ -124,10 +126,8 @@ public class TwitterSentimentClassifierImpl implements ITwitterSentimentClassifi
 		exportDirectory = new File(config.getClassifierOutputDirectory());
 		
 		exportTrainedClassifier = config.getExportTrainedClassifierToFile();
-		if (exportTrainedClassifier) {
-			attributesOutputFileName = classifierName + ".attributes";
-			classifierOutputFileName = classifierName + "-" + classifierType.getSimpleName() + ".classifier";
-		}
+		attributesOutputFileName = classifierName + ".attributes";
+		classifierOutputFileName = classifierName + "-" + classifierType.getSimpleName() + ".classifier";
 		
 		importTrainedClassifier = config.getImportTrainedClassifierToFile();
 	}
@@ -182,7 +182,7 @@ public class TwitterSentimentClassifierImpl implements ITwitterSentimentClassifi
 		// NOTE: do not alter attributes after the next step!
 		
 		trainingData = new Instances(classifierName, attributes, 100);
-		trainingData.setClassIndex(0);
+		trainingData.setClassIndex(CLASS_ATTRIBUTE_INDEX);
 		
 		double[] zeros = new double[trainingData.numAttributes()];
 		
@@ -206,10 +206,52 @@ public class TwitterSentimentClassifierImpl implements ITwitterSentimentClassifi
 	}
 	
 	/**
+	 * Processes the test data and creates a test data set for evaluating the Weka classifier.
+	 * @param testSet the input test data
+	 * @throws IllegalStateException if the classifier wasn't trained yet
+	 */
+	public void processTestSet(Map<Status, Sentiment> testSet) throws IllegalStateException{
+		if (!isTrained()) {
+			throw new IllegalStateException("classifier hasn't been trained yet");
+		}
+		
+		testData = new Instances(classifierName, attributes, 100);
+		testData.setClassIndex(CLASS_ATTRIBUTE_INDEX);
+		
+		double[] zeros = new double[testData.numAttributes()];
+		
+		logger.debug("## Preprocess all tweets of test set.");
+		
+		// process each tweet and create instances
+		for(Map.Entry<Status, Sentiment> entry : testSet.entrySet()) {
+			List<String> tWords = processTweet(entry.getKey());
+			SparseInstance inst = new SparseInstance(testData.numAttributes());
+			inst.setDataset(testData);
+			
+			// set each word that became an attribute during training in the instance vector to 1
+			for (String w : tWords) {
+				Attribute attr = testData.attribute(w);
+				if (attr != null) {
+					inst.setValue(attr, 1.0);
+				}
+			}
+			
+			// set all other values in the instance vector to 0
+			inst.replaceMissingValues(zeros);
+			
+			// set class value
+			inst.setClassValue(testSet.get(entry.getKey()).toString());
+			
+			testData.add(inst);
+		}
+	}
+	
+	/**
 	 * Trains the classifier with the currently set training data.
 	 * @throws ClassifierException
+	 * @throws IllegalStateException if no processed training data is available
 	 */
-	public void train() throws ClassifierException {
+	public void train() throws ClassifierException, IllegalStateException {
 		if (trainingData == null) {
 			throw new IllegalStateException("Couldn't train classifier - no processed training data available");
 		}
@@ -218,7 +260,7 @@ public class TwitterSentimentClassifierImpl implements ITwitterSentimentClassifi
 		
 		// instantiate classifier
 		try {
-			classifier = classifierType.newInstance();
+			instantiateClassifier();
 		} catch (InstantiationException | IllegalAccessException ex) {
 			logger.error("Couldn't instantiate classifier of type '"+classifierType.getName()+"'", ex);
 			throw new ClassifierException("Couldn't instantiate classifier", ex);
@@ -243,48 +285,44 @@ public class TwitterSentimentClassifierImpl implements ITwitterSentimentClassifi
 	}
 	
 	/**
-	 * Exports the processed training data to an ARFF file. 
-	 * Caution: If the file already exists, it will get overwritten!
-	 * @param outputFileName the output file name
-	 * @throws IOException
+	 * Evaluates the classifier with a prev. processed test set and prints an evaluation summary.
+	 * @throws ClassifierException if an exception occurred during evaluation
+	 * @throws IllegalStateException if either the classifier wasn't trained or no processed test data is available
 	 */
-	public void exportProcessedTrainingDataToArffFile(String outputFileName) throws IOException {
-		if (trainingData == null) {
-			throw new IllegalStateException("Processed training data not available -- please call train first");
+	public void evaluate() throws ClassifierException, IllegalStateException {
+		if (!isTrained()) {
+			throw new IllegalStateException("Cannot evaluate classifier -- classifier wasn't trained yet");
+		}
+		if (testData == null) {
+			throw new IllegalStateException("Cannot evaluate classifier -- no processed test set available");
 		}
 		
-		ArffSaver arffSaver = new ArffSaver();
-		arffSaver.setInstances(trainingData);
+		Evaluation eval = null;
+		try {
+			eval = new Evaluation(testData);
+			eval.useNoPriors();
+			eval.evaluateModel(classifier, testData);
+		} catch (Exception ex) {
+			throw new ClassifierException("Couldn't evaluate classifier -- exception thrown by Weka", ex);
+		}
 		
-		createExportDirectory();
-		arffSaver.setFile(new File(exportDirectory, outputFileName));
-		arffSaver.writeBatch();
+		String evalSummary = eval.toSummaryString();
+		String evalSummaryLines[] = evalSummary.split("\\r?\\n");
+		
+		// print only summary of correctly/incorrectly classified instances
+		System.out.println(evalSummaryLines[1]);
+		System.out.println(evalSummaryLines[2]);
 	}
 	
 	/**
-	 * Loads processed training data from an ARFF file.
-	 * @param inputArffFile the ARFF file to load.
-	 * @throws IOException
+	 * Evaluates the classifier using a given test set.
+	 * @param testSet the test set to use for evaluation
+	 * @throws ClassifierException if an exception occurred during evaluation
+	 * @throws IllegalStateException if the classifier wasn't trained
 	 */
-	public void loadProcessedTrainingDataFromArffFile(File inputArffFile) throws IOException {
-		// load training data
-		ArffLoader arffLoader = new ArffLoader();
-		arffLoader.setFile(inputArffFile);
-		trainingData = arffLoader.getDataSet();
-		trainingData.setClassIndex(0);
-		
-		// re-populate attribute vector
-		attributes = new FastVector(INIT_ATTRIBUTES_CAPACITY);
-		
-		// add class attribute
-		Attribute classAttr = createClassAttribute();
-		attributes.addElement(classAttr);
-		
-		// add other attributes of training set
-		for (Enumeration<Attribute> e = trainingData.enumerateAttributes(); e.hasMoreElements();) {
-			Attribute attr = e.nextElement();
-			attributes.addElement(attr);
-		}
+	public void evaluate(Map<Status, Sentiment> testSet) throws ClassifierException, IllegalStateException {
+		processTestSet(testSet);
+		evaluate();
 	}
 	
 	@Override
@@ -293,18 +331,18 @@ public class TwitterSentimentClassifierImpl implements ITwitterSentimentClassifi
 			throw new IllegalStateException("classifier hasn't been trained yet");
 		}
 		
-		Instances testData = new Instances(classifierName, attributes, 100);
+		Instances data = new Instances(classifierName, attributes, 100);
 		
-		SparseInstance inst = new SparseInstance(testData.numAttributes());
-		inst.setDataset(testData);
+		SparseInstance inst = new SparseInstance(data.numAttributes());
+		inst.setDataset(data);
 		
-		double[] zeros = new double[testData.numAttributes()];
+		double[] zeros = new double[data.numAttributes()];
 		
 		// set attributes to 1
 		List<String> words = processTweet(tweet);
 		for (String w : words) {
-			if (testData.attribute(w) != null)
-				inst.setValue(testData.attribute(w), 1.0);
+			if (data.attribute(w) != null)
+				inst.setValue(data.attribute(w), 1.0);
 		}
 		// set all other values in the instance vector to 0
 		inst.replaceMissingValues(zeros);
@@ -323,11 +361,82 @@ public class TwitterSentimentClassifierImpl implements ITwitterSentimentClassifi
 	
 	@Override
 	public Map<Status, Double[]> classify(Collection<Status> testSet) throws IllegalStateException, ClassifierException {
+		// TODO: improve for multiple tweets
 		Map<Status, Double[]> results = new HashMap<>();
 		for (Status s : testSet) {
 			results.put(s, classify(s));
 		}
 		return results;
+	}
+	
+	/**
+	 * Exports the processed training data to an ARFF file. 
+	 * Caution: If the file already exists, it will get overwritten!
+	 * @param outputFileName the output file name
+	 * @throws IOException
+	 */
+	public void exportProcessedTrainingDataToArffFile(String outputFileName) throws IOException {
+		if (trainingData == null) {
+			throw new IllegalStateException("Couldn't export training data -- no processed training data available");
+		}
+		exportInstancesToArffFile(trainingData, new File(exportDirectory, outputFileName));
+	}
+	
+	/**
+	 * Exports the processed test data to an ARFF file. 
+	 * Caution: If the file already exists, it will get overwritten!
+	 * @param outputFileName the output file name
+	 * @throws IOException
+	 */
+	public void exportProcessedTestDataToArffFile(String outputFileName) throws IOException {
+		if (testData == null) {
+			throw new IllegalStateException("Couldn't export test data -- no processed test data available");
+		}
+		exportInstancesToArffFile(testData, new File(exportDirectory, outputFileName));
+	}
+	
+	/**
+	 * Loads processed training data from an ARFF file.
+	 * @param inputArffFile the ARFF file to load.
+	 * @throws IOException
+	 */
+	public void loadProcessedTrainingDataFromArffFile(File inputArffFile) throws IOException {
+		// load training data
+		trainingData = loadInstancesFromArffFile(inputArffFile);
+		trainingData.setClassIndex(CLASS_ATTRIBUTE_INDEX);
+		
+		// re-populate attribute vector
+		attributes = new FastVector(INIT_ATTRIBUTES_CAPACITY);
+		// * add class attribute
+		Attribute classAttr = createClassAttribute();
+		attributes.addElement(classAttr);
+		// * add other attributes of training set
+		for (Enumeration<Attribute> e = trainingData.enumerateAttributes(); e.hasMoreElements();) {
+			Attribute attr = e.nextElement();
+			attributes.addElement(attr);
+		}
+	}
+	
+	/**
+	 * Loads processed test data from an ARFF file.
+	 * @param inputArffFile the ARFF file to load.
+	 * @throws IOException
+	 */
+	public void loadProcessedTestDataFromArffFile(File inputArffFile) throws IOException {
+		testData = loadInstancesFromArffFile(inputArffFile);
+		testData.setClassIndex(CLASS_ATTRIBUTE_INDEX);
+	}
+	
+	/**
+	 * Instantiates the classifier of the set type.
+	 * @throws InstantiationException
+	 * @throws IllegalAccessException 
+	 */
+	private void instantiateClassifier() throws InstantiationException, IllegalAccessException {
+		if (classifierType == null) {
+			throw new IllegalStateException("Classifier type not set");
+		}
+		classifier = classifierType.newInstance();
 	}
 	
 	/**
@@ -418,6 +527,7 @@ public class TwitterSentimentClassifierImpl implements ITwitterSentimentClassifi
 			try {
 				attributes = readObject(attributesOutputFile, FastVector.class);
 			} catch (IOException | ClassNotFoundException ex) {
+				attributes = null;
 				logger.warn("Couldn't read attributes from prev. trained classifier from file.", ex);
 			}
 		}
@@ -426,9 +536,38 @@ public class TwitterSentimentClassifierImpl implements ITwitterSentimentClassifi
 			try {
 				classifier = readObject(classifierOutputFile, Classifier.class);
 			} catch (IOException | ClassNotFoundException ex) {
+				attributes = null;
+				classifier = null;
 				logger.warn("Couldn't read prev. trained classifier from file.", ex);
 			}
 		}
+	}
+	
+	/**
+	 * Exports Weka instances data to an ARFF file.
+	 * @param data the data to export
+	 * @param out the file to export
+	 * @throws IOException
+	 */
+	private void exportInstancesToArffFile(Instances data, File out) throws IOException {
+		ArffSaver arffSaver = new ArffSaver();
+		arffSaver.setInstances(data);
+		
+		createExportDirectory();
+		arffSaver.setFile(out);
+		arffSaver.writeBatch();
+	}
+	
+	/**
+	 * Loads Weka instances from an ARFF file.
+	 * @param in the input file
+	 * @return the loaded Weka instances
+	 * @throws IOException 
+	 */
+	private Instances loadInstancesFromArffFile(File in) throws IOException {
+		ArffLoader arffLoader = new ArffLoader();
+		arffLoader.setFile(in);
+		return arffLoader.getDataSet();
 	}
 	
 	/**
@@ -526,8 +665,12 @@ public class TwitterSentimentClassifierImpl implements ITwitterSentimentClassifi
 	public void setClassifierOutputFileName(String fileName) {
 		classifierOutputFileName = fileName;
 	}
-
-	private Exception IllegalStateException(String processed_training) {
-		throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+	
+	public Class<? extends Classifier> getClassifierType() {
+		return classifierType;
+	}
+	
+	public void setClassifierType(Class<? extends Classifier> type) {
+		classifierType = type;
 	}
 }

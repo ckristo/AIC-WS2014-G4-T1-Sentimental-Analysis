@@ -46,6 +46,10 @@ public class ClassifierTest {
 	{ when(tweet6.getText()).thenReturn("@surfit: I just checked my google for my business- blip shows up as the second entry! Huh. Is that a good or ba... ? http://blip.fm/~6emhv"); }
 	Status tweet7 = mock(Status.class);
 	{ when(tweet7.getText()).thenReturn("This is a good test tweet"); }
+	Status tweet8 = mock(Status.class);
+	{ when(tweet8.getText()).thenReturn("This is a rather bad test tweet"); }
+	Status tweet9 = mock(Status.class);
+	{ when(tweet9.getText()).thenReturn("This is a neutral test tweet"); }
 	
 	Map<Status, Sentiment> trainingSet = new HashMap<>();
 	{
@@ -55,6 +59,12 @@ public class ClassifierTest {
 		trainingSet.put(tweet4, Sentiment.NEGATIVE);
 		trainingSet.put(tweet5, Sentiment.NEUTRAL);
 		trainingSet.put(tweet6, Sentiment.NEUTRAL);
+	}
+	Map<Status, Sentiment> testSet = new HashMap<>();
+	{
+		testSet.put(tweet7, Sentiment.POSITIVE);
+		testSet.put(tweet8, Sentiment.NEGATIVE);
+		testSet.put(tweet9, Sentiment.NEUTRAL);
 	}
 	
 	File exportTrainingDataFile = null;
@@ -152,6 +162,44 @@ public class ClassifierTest {
 		
 		assertThat(c1, is(equalTo(c2)));
 		assertThat(c2, is(equalTo(c3)));
+	}
+	
+	@Test
+	public void testProcessTestSet() throws Exception {
+		// train classifier
+		classifier.train(trainingSet);
+		assertThat(classifier.isTrained(), is(true));
+		
+		// process test data
+		classifier.processTestSet(testSet);
+	}
+	
+	@Test
+	public void testEvaluateClassifier() throws Exception {
+		// train classifier
+		classifier.train(trainingSet);
+		assertThat(classifier.isTrained(), is(true));
+		
+		// evaluate classifier
+		classifier.evaluate(testSet);
+	}
+	
+	@Test
+	public void testEvaluateClassifierWithProcessedTestSet() throws Exception {
+		// train classifier
+		classifier.train(trainingSet);
+		assertThat(classifier.isTrained(), is(true));
+		
+		// process test data
+		classifier.processTestSet(testSet);
+		
+		// evaluate classifier
+		classifier.evaluate();
+	}
+	
+	@Test(expected = IllegalStateException.class)
+	public void testProcessTestDataWithoutTrainedClassifier() throws Exception {
+		classifier.processTestSet(trainingSet);
 	}
 	
 	@Test

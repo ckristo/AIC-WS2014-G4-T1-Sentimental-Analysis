@@ -1,5 +1,6 @@
 package at.ac.tuwien.infosys.dsg.aic.ws2014.g4.t1;
 
+import at.ac.tuwien.infosys.dsg.aic.ws2014.g4.t1.classifier.ClassifierException;
 import at.ac.tuwien.infosys.dsg.aic.ws2014.g4.t1.classifier.Sentiment;
 import at.ac.tuwien.infosys.dsg.aic.ws2014.g4.t1.classifier.TwitterSentimentClassifierImpl;
 import at.ac.tuwien.infosys.dsg.aic.ws2014.g4.t1.helper.ApplicationConfig;
@@ -30,6 +31,14 @@ import twitter4j.TwitterObjectFactory;
  * @see http://help.sentiment140.com/for-students/
  */
 public class Sentiment140DataLoader {
+	
+	/**
+	 * Enumeration for processing types.
+	 */
+	enum ProcessingType {
+		TRAIN,
+		TEST
+	}
 	
 	/**
 	 * Exit value in case of error.
@@ -74,13 +83,13 @@ public class Sentiment140DataLoader {
 	/**
 	 * Logger.
 	 */
-	private static final Logger logger = LogManager.getLogger("Sentiment140TrainClassifier");
+	private static final Logger logger = LogManager.getLogger(Sentiment140DataLoader.class);
 	
 	/**
 	 * Prints usage message to stdout.
 	 */
 	public static void usage() {
-		System.out.println("Sentiment140TrainClassifier <bzipped-csv-file> [class-limit]");
+		System.out.println(Sentiment140DataLoader.class.getSimpleName()+" <processing-type=training|test> <bzipped-csv-file> [class-limit]");
 	}
 	
 	/**
@@ -89,18 +98,26 @@ public class Sentiment140DataLoader {
 	 */
 	public static void main(String[] args) {
 		// check arguments
-		if (args.length == 0) {
-			System.err.println("Missing argument <bzipped-csv-file>");
+		if (args.length < 2) {
+			System.err.println("Not enough arguments");
 			usage();
 			System.exit(EXIT_ERROR);
-		} else if (args.length > 2) {
+		} else if (args.length > 3) {
 			System.err.println("Too much arguments");
+			usage();
+			System.exit(EXIT_ERROR);
+		}
+		ProcessingType type = null;
+		try {
+			type = ProcessingType.valueOf(args[0].toUpperCase());
+		} catch (IllegalArgumentException ex) {
+			System.err.println("Illegal argument <processing-type>");
 			usage();
 			System.exit(EXIT_ERROR);
 		}
 		
 		// read class limit argument
-		if (args.length == 2) {
+		if (args.length > 2) {
 			try {
 				classLimit = Integer.parseInt(args[1]) * 1000;
 			} catch (NumberFormatException ex) {
@@ -111,18 +128,22 @@ public class Sentiment140DataLoader {
 		}
 		
 		// check if file exists
-		File inFile = new File(args[0]);
+		File inFile = new File(args[1]);
 		if (!inFile.exists()) {
 			System.err.println("Given <bzipped-csv-file> doesn't exist");
+			usage();
+			System.exit(EXIT_ERROR);
+		} else if (!inFile.canRead()) {
+			System.err.println("Given <bzipped-csv-file> is not readable");
 			usage();
 			System.exit(EXIT_ERROR);
 		}
 		
 		// read training set data from given file
-		Map<Status, Sentiment> trainingSet = null;
+		Map<Status, Sentiment> data = null;
 		try {
 			// read training set from file
-			trainingSet = readTrainingSet(inFile);
+			data = readSentiment140Data(inFile);
 		} catch (IOException ex) {
 			System.err.println("Couldn't read given <bzipped-csv-file>");
 			usage();
@@ -142,28 +163,38 @@ public class Sentiment140DataLoader {
 		// create classifier
 		TwitterSentimentClassifierImpl classifier = new TwitterSentimentClassifierImpl(config);
 		
-		// process and export training data
-		classifier.processTrainingSet(trainingSet);
-		
-		// export processed training data
-		try {
-			classifier.exportProcessedTrainingDataToArffFile("Sentiment140TrainingData-"+(classLimit/1000)+"k.arff");
-		} catch (IOException ex) {
-			logger.error("Couldn't export processed training data to ARFF file", ex);
-			System.err.println("Couldn't export processed training data to ARFF file");
-			System.exit(EXIT_ERROR);
+		// process and export data
+		switch (type) {
+			case TRAIN:
+				try {
+					classifier.processTrainingSet(data);
+					classifier.exportProcessedTrainingDataToArffFile("Sentiment140TrainingData-training.arff");
+				} catch (IOException ex) {
+					logger.error("Couldn't export processed training data to ARFF file", ex);
+					System.err.println("Couldn't export processed training data to ARFF file");
+					System.exit(EXIT_ERROR);
+				}
+			case TEST:
+				try {
+					classifier.processTestSet(data);
+					classifier.evaluate();
+				} catch (ClassifierException ex) {
+					logger.error("Couldn't evaluate classifier", ex);
+					System.err.println("Couldn't export processed test data to ARFF file");
+					System.exit(EXIT_ERROR);
+				}
 		}
 		
 		System.exit(EXIT_SUCCESS);
 	}
 	
 	/**
-	 * Read training set from a BZIP2-compressed file.
+	 * Read data set from a BZIP2-compressed file.
 	 * @param file the file to read from
-	 * @return the training set
+	 * @return the data set
 	 * @throws IOException if the file couldn't be read successfully.
 	 */
-	private static Map<Status, Sentiment> readTrainingSet(File file) throws IOException {
+	private static Map<Status, Sentiment> readSentiment140Data(File file) throws IOException {
 		// create bzipped input stream
 		InputStream bzIn = null;
 		try {
@@ -250,7 +281,7 @@ public class Sentiment140DataLoader {
 			// create JSON string and let Twitter4J generate a Status object
 			Status status = createStatusObject(record);
 			if (status == null) {
-				logger.warn("Coudln't create status object for record #"+record.getRecordNumber());
+				logger.warn("Couldn't create status object for record #"+record.getRecordNumber());
 				continue;
 			}
 			
