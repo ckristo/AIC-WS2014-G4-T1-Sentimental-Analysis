@@ -11,7 +11,6 @@ import twitter4j.Status;
 import twitter4j.Twitter;
 import twitter4j.TwitterException;
 import twitter4j.TwitterFactory;
-import at.ac.tuwien.infosys.dsg.aic.ws2014.g4.t1.classifier.ITwitterSentimentClassifier;
 import at.ac.tuwien.infosys.dsg.aic.ws2014.g4.t1.classifier.TwitterSentimentClassifierImpl;
 import java.util.Collection;
 import java.util.HashSet;
@@ -22,10 +21,10 @@ public class TwitterSentimentDetectionCLI {
 		String line = "";
 		String cmd;
 		
-		ITwitterSentimentClassifier classifier = new TwitterSentimentClassifierImpl();
+		TwitterSentimentClassifierImpl classifier = new TwitterSentimentClassifierImpl();
 		
 		ArrayList<Status> tweets = new ArrayList<>();
-		Collection<Double[]> sentiments = new HashSet<>();
+		Collection<double[]> sentiments = new HashSet<>();
 		String searchTerm = "";
 		BufferedReader in = new BufferedReader(new InputStreamReader(System.in));
 		System.out.println("************************************");
@@ -76,14 +75,14 @@ public class TwitterSentimentDetectionCLI {
 				} else
 					System.out.println("*:> Classifying Tweets...");
 				try {
-					sentiments = classifier.classify(tweets).values();
+					sentiments = classifier.classifyWithProbabilities(tweets).values();
 				} catch (Exception e) {
 					error("Classifier stopped!");
 					e.printStackTrace();
 				}
                 
                 Double[] sentSum = new Double[] {0.0d, 0.0d, 0.0d};
-				for (Double[] s : sentiments) {
+				for (double[] s : sentiments) {
 					sentSum[0] += s[0];
                     sentSum[1] += s[1];
                     sentSum[2] += s[2];

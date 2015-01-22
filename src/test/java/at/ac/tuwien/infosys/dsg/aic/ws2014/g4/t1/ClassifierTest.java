@@ -105,8 +105,8 @@ public class ClassifierTest {
 		classifier.train(trainingSet);
 		assertThat(classifier.isTrained(), is(true));
 		
-		Double[] prob = classifier.classify(tweet7);
-		assertThat(prob, is(notNullValue()));
+		Sentiment sentiment = classifier.classify(tweet7);
+		assertThat(sentiment, is(notNullValue()));
 	}
 	
 	@Test(expected = IllegalStateException.class)
@@ -142,26 +142,26 @@ public class ClassifierTest {
 	
 	@Test
 	public void testCompareDifferentTrainingProcedures() throws Exception {
-		Double[] c1, c2, c3;
+		Sentiment s1, s2, s3;
 		
 		// approach 1
 		classifier.train(trainingSet);
 		assertThat(classifier.isTrained(), is(true));
-		c1 = classifier.classify(tweet1);
+		s1 = classifier.classify(tweet1);
 		
 		// approach 2
 		classifier.processTrainingSet(trainingSet);
 		classifier.train();
-		c2 = classifier.classify(tweet1);
+		s2 = classifier.classify(tweet1);
 		
 		// approach 3
 		exportTrainingDataFile = new File(classifier.getExportDirectory(), "testData.arff");
 		classifier.exportProcessedTrainingDataToArffFile(exportTrainingDataFile.getName());
 		classifier.loadProcessedTrainingDataFromArffFile(exportTrainingDataFile);
-		c3 = classifier.classify(tweet1);
+		s3 = classifier.classify(tweet1);
 		
-		assertThat(c1, is(equalTo(c2)));
-		assertThat(c2, is(equalTo(c3)));
+		assertThat(s1, is(equalTo(s2)));
+		assertThat(s2, is(equalTo(s3)));
 	}
 	
 	@Test

@@ -29,15 +29,15 @@ public interface ITwitterSentimentClassifier {
 	 * @throws IllegalStateException if the classifier wasn't trained before.
 	 * @throws ClassifierException if the classifier couldn't classify the instance.
 	 */
-	public Double[] classify(Status tweet) throws IllegalStateException, ClassifierException;
+	public Sentiment classify(Status tweet) throws IllegalStateException, ClassifierException;
 	
 	/**
 	 * Determines the sentiment of a given set of tweets.
-	 * @param testSet the Twitter4J status objects to classify.
+	 * @param tweets the Twitter4J status objects to classify.
 	 * @return a map with the determined sentiment classes for the tweets.
 	 * @throws IllegalStateException if the classifier wasn't trained before.
-	 * @throws IllegalStateException if the classifier wasn't trained properly.
+	 * @throws ClassifierException if the classifier couldn't classify the instance.
 	 */
-	public Map<Status, Double[]> classify(Collection<Status> testSet) throws IllegalStateException, ClassifierException;
+	public Map<Status, Sentiment> classify(Collection<Status> tweets) throws IllegalStateException, ClassifierException;
 	
 }
