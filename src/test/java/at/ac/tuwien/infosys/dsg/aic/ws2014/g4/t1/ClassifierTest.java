@@ -1,26 +1,26 @@
 package at.ac.tuwien.infosys.dsg.aic.ws2014.g4.t1;
 
-import at.ac.tuwien.infosys.dsg.aic.ws2014.g4.t1.classifier.Sentiment;
+import at.ac.tuwien.infosys.dsg.aic.ws2014.g4.t1.classifier.ITwitterSentimentClassifier.Sentiment;
+import at.ac.tuwien.infosys.dsg.aic.ws2014.g4.t1.classifier.SentiWordNetDictionary;
+import at.ac.tuwien.infosys.dsg.aic.ws2014.g4.t1.classifier.SentiWordNetDictionary.WordNetPosition;
 import at.ac.tuwien.infosys.dsg.aic.ws2014.g4.t1.classifier.TwitterSentimentClassifierImpl;
 import at.ac.tuwien.infosys.dsg.aic.ws2014.g4.t1.helper.ApplicationConfig;
 import at.ac.tuwien.infosys.dsg.aic.ws2014.g4.t1.helper.Constants;
-import at.ac.tuwien.infosys.dsg.aic.ws2014.g4.t1.preprocessor.SentiWordNetDictionary;
-import at.ac.tuwien.infosys.dsg.aic.ws2014.g4.t1.preprocessor.SentiWordNetDictionary.WordNetPosition;
 import java.io.File;
 import java.io.InputStream;
 import java.util.HashMap;
 import java.util.Map;
-import twitter4j.Status;
-
-import org.junit.Before;
-import org.junit.Test;
-
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.*;
+import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.notNullValue;
 import org.junit.After;
 import static org.junit.Assert.assertTrue;
+import org.junit.Before;
+import org.junit.Test;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
+import twitter4j.Status;
 
 /**
  * Unit test for the Preprocessor implementation.

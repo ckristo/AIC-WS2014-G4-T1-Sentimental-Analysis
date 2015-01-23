@@ -19,6 +19,7 @@ hs_err_pid*
 .settings
 # - Netbeans
 nb-configuration.xml
+nbactions.xml
 
 /data/
 /test-data/

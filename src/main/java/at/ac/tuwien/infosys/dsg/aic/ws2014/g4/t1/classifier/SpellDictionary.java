@@ -1,5 +1,4 @@
-
-package at.ac.tuwien.infosys.dsg.aic.ws2014.g4.t1.preprocessor;
+package at.ac.tuwien.infosys.dsg.aic.ws2014.g4.t1.classifier;
 
 import com.swabunga.spell.engine.SpellDictionaryHashMap;
 import com.swabunga.spell.engine.Word;
@@ -16,47 +15,50 @@ import org.apache.logging.log4j.Logger;
  * A spell dictionary based on Jazzy.
  */
 public class SpellDictionary implements IDictionary {
-	
+
 	/**
 	 * The name of the resource file to load the dictionary from.
 	 */
 	private static final String DICT_FILE_RESOURCE = "/spell.txt";
-	
+
 	/**
 	 * Logger instance.
 	 */
 	private static final Logger logger = LogManager.getLogger(SpellDictionary.class);
-	
+
 	/**
 	 * The singleton instance.
 	 */
 	private static SpellDictionary instance = null;
-	
+
 	/**
 	 * The Jazzy spell dictionary implementation.
 	 */
 	private SpellDictionaryHashMap dictionary = null;
-	
+
 	/**
 	 * Allows to specify spell suggestions that should be ignored.
 	 */
 	private final List<String> SUGGESTIONS_TO_IGNORE = new ArrayList<>();
+
 	{
 		SUGGESTIONS_TO_IGNORE.add("h");
 	}
-	
+
 	/**
 	 * Matrix used to generate distance values for spell correction suggestions.
 	 */
 	private int[][] distMatrix = null;
-	
+
 	/**
 	 * Constructor.
 	 */
-	private SpellDictionary() {}
-	
+	private SpellDictionary() {
+	}
+
 	/**
 	 * Returns the spell dictionary instance.
+	 *
 	 * @return the spell dictionary instance.
 	 */
 	public static SpellDictionary getInstance() {
@@ -65,7 +67,7 @@ public class SpellDictionary implements IDictionary {
 		}
 		return instance;
 	}
-	
+
 	/**
 	 * Performs the initialization of the spell dictionary.
 	 */
@@ -78,35 +80,37 @@ public class SpellDictionary implements IDictionary {
 			logger.error("Couldn't load spell dictionary file", ex);
 		}
 	}
-	
+
 	/**
 	 * Loads the dictionary from a resource.
+	 *
 	 * @param resourceName the dictionary file resource
-	 * @throws 
-	 *   - FileNotFoundException if the dictionary file doesn't exist
-	 *   - IOException if the dictionary file couldn't be read
+	 * @throws - FileNotFoundException if the dictionary file doesn't exist -
+	 * IOException if the dictionary file couldn't be read
 	 */
 	private void loadDictionaryResource(String resourceName) throws IOException {
 		InputStream is = SpellDictionary.class.getResourceAsStream(resourceName);
 		if (is == null) {
-			throw new FileNotFoundException("Spell dictionary resource '"+resourceName+"' couldn't be found!");
+			throw new FileNotFoundException("Spell dictionary resource '" + resourceName + "' couldn't be found!");
 		} else {
 			dictionary.addDictionary(new InputStreamReader(is));
 		}
 	}
-	
+
 	/**
 	 * Check if the dictionary contains a given word.
+	 *
 	 * @param word the word to check.
 	 * @return whether the word is present in the dictionary, false otherwise
 	 */
 	@Override
 	public boolean contains(String word) {
 		return dictionary.isCorrect(word);
- 	}
-	
+	}
+
 	/**
 	 * Gets a suggestion for a misspelled word.
+	 *
 	 * @param word the misspelled word to get a replacement suggestion.
 	 * @return the replacement suggestion or null if no suggestions was found.
 	 */

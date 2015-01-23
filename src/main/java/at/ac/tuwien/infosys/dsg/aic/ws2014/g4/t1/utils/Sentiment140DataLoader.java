@@ -1,7 +1,7 @@
-package at.ac.tuwien.infosys.dsg.aic.ws2014.g4.t1;
+package at.ac.tuwien.infosys.dsg.aic.ws2014.g4.t1.utils;
 
 import at.ac.tuwien.infosys.dsg.aic.ws2014.g4.t1.classifier.ClassifierException;
-import at.ac.tuwien.infosys.dsg.aic.ws2014.g4.t1.classifier.Sentiment;
+import at.ac.tuwien.infosys.dsg.aic.ws2014.g4.t1.classifier.ITwitterSentimentClassifier.Sentiment;
 import at.ac.tuwien.infosys.dsg.aic.ws2014.g4.t1.classifier.TwitterSentimentClassifierImpl;
 import at.ac.tuwien.infosys.dsg.aic.ws2014.g4.t1.helper.ApplicationConfig;
 import at.ac.tuwien.infosys.dsg.aic.ws2014.g4.t1.helper.Constants;
@@ -26,20 +26,18 @@ import twitter4j.TwitterException;
 import twitter4j.TwitterObjectFactory;
 
 /**
- * Reads the Sentiment140 training dataset file and exports the processed 
+ * Reads the Sentiment140 training dataset file and exports the processed
  * training data as ARFF file.
+ *
  * @see http://help.sentiment140.com/for-students/
  */
 public class Sentiment140DataLoader {
-	
+
 	/**
 	 * Enumeration for processing types.
 	 */
-	enum ProcessingType {
-		TRAIN,
-		TEST
-	}
-	
+	enum ProcessingType { TRAIN, TEST }
+
 	/**
 	 * Exit value in case of error.
 	 */
@@ -48,7 +46,7 @@ public class Sentiment140DataLoader {
 	 * Exit value in case of a successful run.
 	 */
 	private static final int EXIT_SUCCESS = 0;
-	
+
 	/**
 	 * Sentiment value for positive sentiment.
 	 */
@@ -61,7 +59,7 @@ public class Sentiment140DataLoader {
 	 * Sentiment value for neutral sentiment.
 	 */
 	private static final int POLARITY_NEUTRAL = 2;
-	
+
 	/**
 	 * The CSV row that contains the polarity value.
 	 */
@@ -74,26 +72,27 @@ public class Sentiment140DataLoader {
 	 * The CSV row that contains the Tweet's text.
 	 */
 	private static final int ROW_TEXT = 5;
-	
+
 	/**
 	 * The max. number of elements to put into the training set per class.
 	 */
 	private static int classLimit = 5000;
-	
+
 	/**
 	 * Logger.
 	 */
 	private static final Logger logger = LogManager.getLogger(Sentiment140DataLoader.class);
-	
+
 	/**
 	 * Prints usage message to stdout.
 	 */
 	public static void usage() {
-		System.out.println(Sentiment140DataLoader.class.getSimpleName()+" <processing-type=training|test> <bzipped-csv-file> [class-limit]");
+		System.out.println(Sentiment140DataLoader.class.getSimpleName() + " <processing-type=training|test> <bzipped-csv-file> [class-limit]");
 	}
-	
+
 	/**
 	 * main()
+	 *
 	 * @param args the arguments
 	 */
 	public static void main(String[] args) {
@@ -115,7 +114,7 @@ public class Sentiment140DataLoader {
 			usage();
 			System.exit(EXIT_ERROR);
 		}
-		
+
 		// read class limit argument
 		if (args.length > 2) {
 			try {
@@ -126,7 +125,7 @@ public class Sentiment140DataLoader {
 				System.exit(EXIT_ERROR);
 			}
 		}
-		
+
 		// check if file exists
 		File inFile = new File(args[1]);
 		if (!inFile.exists()) {
@@ -138,7 +137,7 @@ public class Sentiment140DataLoader {
 			usage();
 			System.exit(EXIT_ERROR);
 		}
-		
+
 		// read training set data from given file
 		Map<Status, Sentiment> data = null;
 		try {
@@ -149,7 +148,7 @@ public class Sentiment140DataLoader {
 			usage();
 			System.exit(EXIT_ERROR);
 		}
-		
+
 		ApplicationConfig config = null;
 		try {
 			InputStream is = Sentiment140DataLoader.class.getResourceAsStream(Constants.DEFAULT_CONFIG_FILE_RESOURCE);
@@ -159,10 +158,10 @@ public class Sentiment140DataLoader {
 			System.err.println("Couldn't create classifier -- configuration file couldn't be read");
 			System.exit(EXIT_ERROR);
 		}
-		
+
 		// create classifier
 		TwitterSentimentClassifierImpl classifier = new TwitterSentimentClassifierImpl(config);
-		
+
 		// process and export data
 		switch (type) {
 			case TRAIN:
@@ -184,12 +183,13 @@ public class Sentiment140DataLoader {
 					System.exit(EXIT_ERROR);
 				}
 		}
-		
+
 		System.exit(EXIT_SUCCESS);
 	}
-	
+
 	/**
 	 * Read data set from a BZIP2-compressed file.
+	 *
 	 * @param file the file to read from
 	 * @return the data set
 	 * @throws IOException if the file couldn't be read successfully.
@@ -205,7 +205,7 @@ public class Sentiment140DataLoader {
 			logger.error("Couldn't create input stream for bzipped CSV file.", ex);
 			throw ex;
 		}
-		
+
 		// parse the CSV file
 		CSVParser csvParser = null;
 		try {
@@ -214,29 +214,28 @@ public class Sentiment140DataLoader {
 			logger.error("Couldn't create CSV parser.", ex);
 			throw ex;
 		}
-		
+
 		Map<Status, Sentiment> trainingSet = new HashMap<>();
-		
+
 		int numNegative = 0, numNeutral = 0, numPositive = 0;
-		
-		for(CSVRecord record : csvParser) {
+
+		for (CSVRecord record : csvParser) {
 			int polarity;
 			try {
 				polarity = Integer.parseInt(record.get(ROW_POLARITY));
 			} catch (NumberFormatException ex) {
-				logger.warn("Read polarity is not a valid number for record #"+record.getRecordNumber(), ex);
+				logger.warn("Read polarity is not a valid number for record #" + record.getRecordNumber(), ex);
 				continue;
 			}
-			
+
 			// map polarity of input to a sentiment class
 			Sentiment sent = mapPolarityToSentiment(polarity);
 			if (sent == null) {
-				logger.warn("Read polarity is not a known polarity value for record #"+record.getRecordNumber());
+				logger.warn("Read polarity is not a known polarity value for record #" + record.getRecordNumber());
 				continue;
 			}
-			
+
 			// FIXME: refactor code to be independant to the number of classes
-			
 			// check if we reached the limit for at least one class
 			boolean classLimitReached = false;
 			// - negative
@@ -263,61 +262,64 @@ public class Sentiment140DataLoader {
 					classLimitReached = true;
 				}
 			}
-			
+
 			// stop after limits for each class is reached
-			if (numNegative == classLimit 
-					&& numNeutral == classLimit 
+			if (numNegative == classLimit
+					&& numNeutral == classLimit
 					&& numPositive == classLimit) {
 				logger.info("Limit for all classes reached, stop collecting training data");
 				break;
 			}
-			
+
 			// do not add element if limit for the class is reached
 			if (classLimitReached) {
 				//logger.debug("Limit for class "+sent+" reached");
 				continue;
 			}
-			
+
 			// create JSON string and let Twitter4J generate a Status object
 			Status status = createStatusObject(record);
 			if (status == null) {
-				logger.warn("Couldn't create status object for record #"+record.getRecordNumber());
+				logger.warn("Couldn't create status object for record #" + record.getRecordNumber());
 				continue;
 			}
-			
-			logger.debug("Put new "+sent+" entry into training set");
-			
+
+			logger.debug("Put new " + sent + " entry into training set");
+
 			trainingSet.put(status, sent);
 		}
-		
+
 		csvParser.close();
-		
+
 		return trainingSet;
 	}
-	
+
 	/**
 	 * Returns the sentiment for a given polarity value.
+	 *
 	 * @param polarity the polarity value to map
 	 * @return the mapped sentiment, or null if polarity is an unknown value
 	 */
 	private static Sentiment mapPolarityToSentiment(int polarity) {
 		switch (polarity) {
-			case POLARITY_NEGATIVE :
+			case POLARITY_NEGATIVE:
 				return Sentiment.NEGATIVE;
-			case POLARITY_NEUTRAL :
+			case POLARITY_NEUTRAL:
 				return Sentiment.NEUTRAL;
-			case POLARITY_POSITIVE :
+			case POLARITY_POSITIVE:
 				return Sentiment.POSITIVE;
-			default :
-				logger.warn("Unknown polarity value "+polarity);
+			default:
+				logger.warn("Unknown polarity value " + polarity);
 				return null;
 		}
 	}
 
 	/**
 	 * Creates a status object based on a CSV entry.
+	 *
 	 * @param record the CSV entry to create a status object from.
-	 * @return the created status object or null if (based on the input) no status object could be created
+	 * @return the created status object or null if (based on the input) no
+	 * status object could be created
 	 */
 	private static Status createStatusObject(CSVRecord record) {
 		JSONObject jo = new JSONObject();

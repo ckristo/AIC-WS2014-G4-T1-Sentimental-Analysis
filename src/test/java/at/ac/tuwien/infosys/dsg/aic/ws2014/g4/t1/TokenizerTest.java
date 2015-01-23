@@ -1,13 +1,11 @@
 package at.ac.tuwien.infosys.dsg.aic.ws2014.g4.t1;
 
-import at.ac.tuwien.infosys.dsg.aic.ws2014.g4.t1.preprocessor.ITokenizer;
-import at.ac.tuwien.infosys.dsg.aic.ws2014.g4.t1.preprocessor.TokenizerImpl;
-
+import at.ac.tuwien.infosys.dsg.aic.ws2014.g4.t1.classifier.ITokenizer;
+import at.ac.tuwien.infosys.dsg.aic.ws2014.g4.t1.classifier.TokenizerImpl;
 import java.util.List;
-
+import static org.junit.Assert.assertTrue;
 import org.junit.Before;
 import org.junit.Test;
-import static org.junit.Assert.*;
 
 /**
  * Unit test for the Preprocessor implementation.

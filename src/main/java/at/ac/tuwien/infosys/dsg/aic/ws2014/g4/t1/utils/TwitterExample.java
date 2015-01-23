@@ -1,27 +1,19 @@
-package at.ac.tuwien.infosys.dsg.aic.ws2014.g4.t1;
+package at.ac.tuwien.infosys.dsg.aic.ws2014.g4.t1.utils;
 
-import at.ac.tuwien.infosys.dsg.aic.ws2014.g4.t1.classifier.ClassifierException;
-import at.ac.tuwien.infosys.dsg.aic.ws2014.g4.t1.classifier.ITwitterSentimentClassifier;
-import at.ac.tuwien.infosys.dsg.aic.ws2014.g4.t1.classifier.TwitterSentimentClassifierImpl;
-import at.ac.tuwien.infosys.dsg.aic.ws2014.g4.t1.helper.ApplicationConfig;
-import at.ac.tuwien.infosys.dsg.aic.ws2014.g4.t1.helper.Constants;
+import com.twitter.hbc.core.processor.StringDelimitedProcessor;
 import java.io.BufferedInputStream;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
-
 import org.apache.commons.compress.compressors.bzip2.BZip2CompressorInputStream;
-
-import com.twitter.hbc.core.processor.StringDelimitedProcessor;
-
+import twitter4j.Query;
+import twitter4j.QueryResult;
+import twitter4j.Status;
 import twitter4j.Twitter;
 import twitter4j.TwitterException;
 import twitter4j.TwitterFactory;
-import twitter4j.Status;
-import twitter4j.Query;
-import twitter4j.QueryResult;
 import twitter4j.TwitterObjectFactory;
 
 /**
@@ -30,7 +22,7 @@ import twitter4j.TwitterObjectFactory;
 public class TwitterExample {
 
 	public static void main(String[] args) {
-		
+
 		/**
 		 * EXAMPLE CODE for using the Twitter Search API --
 		 * https://dev.twitter.com/rest/public/search
@@ -38,7 +30,7 @@ public class TwitterExample {
 		// set up twitter instance
 		Twitter twitter = new TwitterFactory().getInstance();
 		Query query = new Query("@twitter :(");
-		
+
 		try {
 			// obtain oauth2 bearer token
 			twitter.getOAuth2Token();
@@ -52,7 +44,7 @@ public class TwitterExample {
 		} catch (TwitterException e) {
 			e.printStackTrace();
 		}
-		
+
 		System.out.println("----------------------------------------");
 
 		/**
@@ -88,8 +80,9 @@ public class TwitterExample {
 		} finally {
 			// close input stream
 			try {
-				if (bzIn != null)
+				if (bzIn != null) {
 					bzIn.close();
+				}
 			} catch (IOException e) {
 			}
 		}

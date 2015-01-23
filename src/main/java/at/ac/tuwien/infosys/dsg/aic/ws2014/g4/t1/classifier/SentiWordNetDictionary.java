@@ -1,4 +1,4 @@
-package at.ac.tuwien.infosys.dsg.aic.ws2014.g4.t1.preprocessor;
+package at.ac.tuwien.infosys.dsg.aic.ws2014.g4.t1.classifier;
 
 import java.io.BufferedReader;
 import java.io.FileNotFoundException;
@@ -11,11 +11,11 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 /**
- * Dictionary for SentiWordNet data (http://sentiwordnet.isti.cnr.it).
- * Heavily based on http://sentiwordnet.isti.cnr.it/code/SentiWordNetDemoCode.java
+ * Dictionary for SentiWordNet data (http://sentiwordnet.isti.cnr.it). Heavily
+ * based on http://sentiwordnet.isti.cnr.it/code/SentiWordNetDemoCode.java
  */
 public class SentiWordNetDictionary implements IDictionary {
-	
+
 	/**
 	 * Enumeration for possible WordNet positions.
 	 */
@@ -45,34 +45,36 @@ public class SentiWordNetDictionary implements IDictionary {
 			}
 		}
 	}
-	
+
 	/**
 	 * The SentiWordNet file.
 	 */
 	private static final String DICT_FILE_RESOURCE = "/sentiwordnet.txt";
-	
+
 	/**
 	 * Logger instance.
 	 */
 	private static final Logger logger = LogManager.getLogger(SentiWordNetDictionary.class);
-	
+
 	/**
 	 * The map instance containing all (loaded) SentiWordNet entries.
 	 */
 	private final HashMap<String, Double> dictionary = new HashMap<>();
-	
+
 	/**
 	 * The singleton instance.
 	 */
 	private static SentiWordNetDictionary instance = null;
-	
+
 	/**
 	 * Constructor.
 	 */
-	private SentiWordNetDictionary() {}
-	
+	private SentiWordNetDictionary() {
+	}
+
 	/**
 	 * Returns the stopwords dictionary instance.
+	 *
 	 * @return the stopwords dictionary instance.
 	 */
 	public static SentiWordNetDictionary getInstance() {
@@ -81,7 +83,7 @@ public class SentiWordNetDictionary implements IDictionary {
 		}
 		return instance;
 	}
-	
+
 	/**
 	 * Performs initialization of the stopwords dictionary.
 	 */
@@ -93,24 +95,25 @@ public class SentiWordNetDictionary implements IDictionary {
 			logger.error("Couldn't load stopwords dictionary file", ex);
 		}
 	}
-	
+
 	/**
 	 * Loads the dictionary file from a resource.
-	 * @throws 
-	 *   - FileNotFoundException if the dictionary file doesn't exist
-	 *   - IOException if the dictionary file couldn't be read
+	 *
+	 * @throws - FileNotFoundException if the dictionary file doesn't exist -
+	 * IOException if the dictionary file couldn't be read
 	 */
 	private void loadDictionaryResource(String resourceName) throws IOException {
 		InputStream is = PreprocessorImpl.class.getResourceAsStream(resourceName);
 		if (is == null) {
-			throw new FileNotFoundException("Stopwords dictionary file '"+resourceName+"' doesn't exist.");
+			throw new FileNotFoundException("Stopwords dictionary file '" + resourceName + "' doesn't exist.");
 		} else {
 			loadDictionary(is);
 		}
 	}
-	
+
 	/**
 	 * Loads the dictionary from an input stream.
+	 *
 	 * @param is the input stream to load
 	 * @throws IOException
 	 */
@@ -126,7 +129,7 @@ public class SentiWordNetDictionary implements IDictionary {
 				if (line.trim().startsWith("#")) {
 					continue;
 				}
-				
+
 				// We use tab separation
 				String[] data = line.split("\t");
 				String wordTypeMarker = data[0];
@@ -135,7 +138,6 @@ public class SentiWordNetDictionary implements IDictionary {
 				// POS ID PosS NegS SynsetTerm#sensenumber Desc
 				// a 00009618 0.5 0.25 spartan#4 austere#3 ascetical#2
 				// ascetic#2 practicing great self-denial;...etc
-
 				// Is it a valid line? Otherwise, through exception.
 				if (data.length != 6) {
 					throw new IllegalArgumentException("Incorrect tabulation format in file, line: " + lineNr);
@@ -171,7 +173,7 @@ public class SentiWordNetDictionary implements IDictionary {
 					tempDictionary.get(synTerm).put(synTermRank, synsetScore);
 				}
 			}
-			
+
 			// Go through all the terms.
 			for (Map.Entry<String, HashMap<Integer, Double>> entry : tempDictionary.entrySet()) {
 				String word = entry.getKey();
@@ -193,9 +195,10 @@ public class SentiWordNetDictionary implements IDictionary {
 			}
 		}
 	}
-	
+
 	/**
 	 * Generates the key for a word and a wordnet position.
+	 *
 	 * @param word the word
 	 * @param position the position
 	 * @return the key for the word and position
@@ -203,9 +206,11 @@ public class SentiWordNetDictionary implements IDictionary {
 	private String createKey(String word, WordNetPosition position) {
 		return word + "#" + position.toString();
 	}
-	
+
 	/**
-	 * Checks if a given word is present in the dictionary (trying all possible positions).
+	 * Checks if a given word is present in the dictionary (trying all possible
+	 * positions).
+	 *
 	 * @param word the word
 	 * @return true if the word is in the dictionary, false otherwise.
 	 */
@@ -218,22 +223,26 @@ public class SentiWordNetDictionary implements IDictionary {
 		}
 		return false;
 	}
-	
+
 	/**
 	 * Checks if a given word/position is present in the dictionary.
+	 *
 	 * @param word the word
 	 * @param position the position
-	 * @return true if the word/position is present in the dictionary, false otherwise
+	 * @return true if the word/position is present in the dictionary, false
+	 * otherwise
 	 */
 	public boolean contains(String word, WordNetPosition position) {
 		return dictionary.containsKey(createKey(word, position));
 	}
-	
+
 	/**
 	 * Returns the sentiment value for a word/position.
+	 *
 	 * @param word the word
 	 * @param position the position
-	 * @return the sentiment value for word/position or null if word/position is not present in the dictionary
+	 * @return the sentiment value for word/position or null if word/position is
+	 * not present in the dictionary
 	 */
 	public double getSentimentValue(String word, WordNetPosition position) {
 		return dictionary.get(createKey(word, position));

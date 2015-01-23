@@ -1,33 +1,36 @@
 package at.ac.tuwien.infosys.dsg.aic.ws2014.g4.t1.classifier;
 
 import at.ac.tuwien.infosys.dsg.aic.ws2014.g4.t1.helper.ApplicationConfig;
-import java.util.*;
-
-import at.ac.tuwien.infosys.dsg.aic.ws2014.g4.t1.preprocessor.IPreprocessor;
-import at.ac.tuwien.infosys.dsg.aic.ws2014.g4.t1.preprocessor.ITokenizer;
-import at.ac.tuwien.infosys.dsg.aic.ws2014.g4.t1.preprocessor.PreprocessorImpl;
-import at.ac.tuwien.infosys.dsg.aic.ws2014.g4.t1.preprocessor.TokenizerImpl;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
-import org.apache.commons.lang.ArrayUtils;
+import java.util.Collection;
+import java.util.Enumeration;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import twitter4j.Status;
 import weka.classifiers.Classifier;
 import weka.classifiers.Evaluation;
-import weka.classifiers.functions.SMO;
-import weka.core.*;
+import weka.core.Attribute;
+import weka.core.FastVector;
+import weka.core.Instances;
+import weka.core.SparseInstance;
 import weka.core.converters.ArffLoader;
 import weka.core.converters.ArffSaver;
 
 /**
  * Class implementing our custom Twitter sentiment detection classifier.
  */
-public class TwitterSentimentClassifierImpl implements ITwitterSentimentClassifier {
+public class TwitterSentimentClassifierImpl extends AbstractTwitterSentimentClassifier {
 
 	/**
 	 * Logger instance.
@@ -46,55 +49,41 @@ public class TwitterSentimentClassifierImpl implements ITwitterSentimentClassifi
 	private static final int CLASS_ATTRIBUTE_INDEX = 0;
 
 	/**
-	 * Index of the negative sentiment class.
+	 * defines the mapping between classifier model type and Weka class.
 	 */
-	public static final int CLASS_INDEX_SENTIMENT_NEGATIVE = 0;
-	/**
-	 * Index of the neutral sentiment class.
-	 */
-	public static final int CLASS_INDEX_SENTIMENT_NEUTRAL = 1;
-	/**
-	 * Index of the positive sentiment class.
-	 */
-	public static final int CLASS_INDEX_SENTIMENT_POSITIVE = 2;
+	private static final Class<? extends Classifier>[] CLASSIFIER_MODEL_MAPPING;
+
+	static {
+		CLASSIFIER_MODEL_MAPPING = new Class[ClassifierModel.values().length];
+		CLASSIFIER_MODEL_MAPPING[ClassifierModel.SVM.ordinal()] = weka.classifiers.functions.SMO.class;
+		CLASSIFIER_MODEL_MAPPING[ClassifierModel.Bayes.ordinal()] = weka.classifiers.bayes.NaiveBayes.class;
+		CLASSIFIER_MODEL_MAPPING[ClassifierModel.kNN.ordinal()] = weka.classifiers.lazy.IBk.class;
+	}
 
 	/**
 	 * The classifier name.
 	 */
-	private final String classifierName;
+	private String classifierName;
+
 	/**
-	 * The classifier type.
+	 * The classifier model to use.
 	 */
-	private Class<? extends Classifier> classifierType = null;
+	private ClassifierModel classifierModel;
+
 	/**
 	 * Indicator whether to export the trained classifier to a file.
 	 */
 	private boolean exportTrainedClassifier = false;
+
 	/**
 	 * Indicator whether to import the trained classifier from a file.
 	 */
 	private boolean importTrainedClassifier = false;
+
 	/**
 	 * The export directory path.
 	 */
 	private File exportDirectory = null;
-	/**
-	 * The file name for exporting the classifier to file.
-	 */
-	private String classifierOutputFileName = null;
-	/**
-	 * The file name for exporting the attributes data to file.
-	 */
-	private String attributesOutputFileName = null;
-
-	/**
-	 * Tokenizer used for Tweet processing.
-	 */
-	private final ITokenizer tokenizer = new TokenizerImpl();
-	/**
-	 * Preprocessor used for Tweet processing.
-	 */
-	private final IPreprocessor preprocessor = new PreprocessorImpl();
 
 	/**
 	 * The processed training data used for training the Weka classifier.
@@ -104,7 +93,6 @@ public class TwitterSentimentClassifierImpl implements ITwitterSentimentClassifi
 	 * The processed test data used for evaluating the Weka classifier.
 	 */
 	private Instances testData = null;
-
 	/**
 	 * A set with all word attributes used by the Weka classifier.
 	 */
@@ -120,7 +108,7 @@ public class TwitterSentimentClassifierImpl implements ITwitterSentimentClassifi
 	 */
 	public TwitterSentimentClassifierImpl() {
 		classifierName = getClass().getSimpleName();
-		classifierType = SMO.class;
+		classifierModel = DEFAULT_CLASSIFIER_MODEL;
 	}
 
 	/**
@@ -130,20 +118,13 @@ public class TwitterSentimentClassifierImpl implements ITwitterSentimentClassifi
 	 * classifier.
 	 */
 	public TwitterSentimentClassifierImpl(ApplicationConfig config) {
-		if (config.getClassifierName() == null) {
-			classifierName = getClass().getName();
-			logger.warn("Classifier name not specified in the configuration file -- setting to '" + getClass().getSimpleName() + "'");
-		} else {
-			classifierName = config.getClassifierName();
-		}
+		String name = config.getClassifierName();
+		ClassifierModel model = config.getClassifierModel();
 
-		classifierType = config.getClassifierType();
-		exportDirectory = new File(config.getClassifierOutputDirectory());
-
+		classifierName = (name != null) ? name : getClass().getSimpleName();
+		classifierModel = (model != null) ? model : DEFAULT_CLASSIFIER_MODEL;
+		exportDirectory = config.getClassifierExportDirectory();
 		exportTrainedClassifier = config.getExportTrainedClassifierToFile();
-		attributesOutputFileName = classifierName + ".attributes";
-		classifierOutputFileName = classifierName + "-" + classifierType.getSimpleName() + ".classifier";
-
 		importTrainedClassifier = config.getImportTrainedClassifierToFile();
 	}
 
@@ -197,6 +178,7 @@ public class TwitterSentimentClassifierImpl implements ITwitterSentimentClassifi
 		}
 
 		// NOTE: do not alter attributes after the next step!
+		
 		trainingData = new Instances(classifierName, attributes, 100);
 		trainingData.setClassIndex(CLASS_ATTRIBUTE_INDEX);
 
@@ -281,7 +263,7 @@ public class TwitterSentimentClassifierImpl implements ITwitterSentimentClassifi
 		try {
 			instantiateClassifier();
 		} catch (InstantiationException | IllegalAccessException ex) {
-			logger.error("Couldn't instantiate classifier of type '" + classifierType.getName() + "'", ex);
+			logger.error("Couldn't instantiate classifier of type '" + classifierModel + "'", ex);
 			throw new ClassifierException("Couldn't instantiate classifier", ex);
 		}
 
@@ -351,36 +333,29 @@ public class TwitterSentimentClassifierImpl implements ITwitterSentimentClassifi
 	@Override
 	public Sentiment classify(Status tweet) throws IllegalStateException, ClassifierException {
 		double[] classDist = classifyWithProbabilities(tweet);
-		return getSentimentForClassDistribution(classDist);
+		return getSentiment(classDist);
 	}
 
 	@Override
 	public Map<Status, Sentiment> classify(Collection<Status> tweets) throws IllegalStateException, ClassifierException {
-		Map<Status, Sentiment> results = new HashMap<>();
+		Map<Status, Sentiment> results = new LinkedHashMap<>();
 		for (Status s : tweets) {
 			results.put(s, classify(s));
 		}
 		return results;
 	}
 
-	/**
-	 * Performs classification of a single tweet and returns the probabilities
-	 * per class. (see CLASS_INDEX_SENTIMENT_* constants for the correct
-	 * indices).
-	 *
-	 * @param tweet the tweet to classify
-	 * @return a double array containing the probabilities per class.
-	 * @throws ClassifierException
-	 */
+	@Override
 	public double[] classifyWithProbabilities(Status tweet) throws ClassifierException {
 		if (!isTrained()) {
 			throw new IllegalStateException("classifier hasn't been trained yet");
 		}
 
 		Instances data = new Instances(classifierName, attributes, 100);
+		data.setClassIndex(CLASS_ATTRIBUTE_INDEX);
 
 		SparseInstance inst = new SparseInstance(data.numAttributes());
-		//inst.setDataset(data);
+		inst.setDataset(data);
 
 		double[] zeros = new double[data.numAttributes()];
 
@@ -404,23 +379,25 @@ public class TwitterSentimentClassifierImpl implements ITwitterSentimentClassifi
 		}
 	}
 
-	/**
-	 * Performs classification of multiple tweet and returns the probabilities
-	 * per class. (see CLASS_INDEX_SENTIMENT_* constants for the correct
-	 * indices).
-	 *
-	 * @param tweets the tweets to classify
-	 * @return a double array containing the probabilities per class.
-	 * @throws ClassifierException
-	 */
+	@Override
 	public Map<Status, double[]> classifyWithProbabilities(Collection<Status> tweets) throws ClassifierException {
-		Map<Status, double[]> results = new HashMap<>();
+		Map<Status, double[]> results = new LinkedHashMap<>();
 		for (Status s : tweets) {
 			results.put(s, classifyWithProbabilities(s));
 		}
 		return results;
 	}
-	
+
+	@Override
+	public void useClassifierModel(ClassifierModel model) {
+		classifierModel = model;
+	}
+
+	@Override
+	public ClassifierModel getClassifierModel() {
+		return classifierModel;
+	}
+
 	/**
 	 * Exports the processed training data to an ARFF file. Caution: If the file
 	 * already exists, it will get overwritten!
@@ -490,10 +467,10 @@ public class TwitterSentimentClassifierImpl implements ITwitterSentimentClassifi
 	 * @throws IllegalAccessException
 	 */
 	private void instantiateClassifier() throws InstantiationException, IllegalAccessException {
-		if (classifierType == null) {
+		if (classifierModel == null) {
 			throw new IllegalStateException("Classifier type not set");
 		}
-		classifier = classifierType.newInstance();
+		classifier = CLASSIFIER_MODEL_MAPPING[classifierModel.ordinal()].newInstance();
 	}
 
 	/**
@@ -502,10 +479,10 @@ public class TwitterSentimentClassifierImpl implements ITwitterSentimentClassifi
 	 * @return an attribute with all classes.
 	 */
 	private Attribute createClassAttribute() {
-		FastVector classValues = new FastVector(3);
-		classValues.insertElementAt(Sentiment.NEGATIVE.toString(), CLASS_INDEX_SENTIMENT_NEGATIVE);
-		classValues.insertElementAt(Sentiment.NEUTRAL.toString(), CLASS_INDEX_SENTIMENT_NEUTRAL);
-		classValues.insertElementAt(Sentiment.POSITIVE.toString(), CLASS_INDEX_SENTIMENT_POSITIVE);
+		FastVector classValues = new FastVector(Sentiment.values().length);
+		for (Sentiment s : Sentiment.values()) {
+			classValues.addElement(s.toString());
+		}
 		return new Attribute("__class__", classValues);
 	}
 
@@ -531,8 +508,8 @@ public class TwitterSentimentClassifierImpl implements ITwitterSentimentClassifi
 		if (!isTrained()) {
 			throw new IllegalStateException("classifier hasn't been trained yet");
 		}
-		exportObject(attributes, attributesOutputFileName);
-		exportObject(classifier, classifierOutputFileName);
+		exportObject(attributes, getAttributesOutputFile());
+		exportObject(classifier, getClassifierOuptutFile());
 	}
 
 	/**
@@ -542,10 +519,9 @@ public class TwitterSentimentClassifierImpl implements ITwitterSentimentClassifi
 	 * @param out the output file -- will be overwritten if it exists already!
 	 * @throws IOException
 	 */
-	private void exportObject(Object obj, String outputFileName) throws IOException {
+	private void exportObject(Object obj, File outputFile) throws IOException {
 		createExportDirectory();
-		File out = new File(exportDirectory, outputFileName);
-		try (ObjectOutputStream modelOutStream = new ObjectOutputStream(new FileOutputStream(out))) {
+		try (ObjectOutputStream modelOutStream = new ObjectOutputStream(new FileOutputStream(outputFile))) {
 			modelOutStream.writeObject(obj);
 		}
 	}
@@ -589,19 +565,21 @@ public class TwitterSentimentClassifierImpl implements ITwitterSentimentClassifi
 		if (attributesOutputFile.exists()) {
 			try {
 				attributes = readObject(attributesOutputFile, FastVector.class);
+				logger.info("Restored attributes from prev. trained classifier file (" + attributesOutputFile.getPath() + ")");
 			} catch (IOException | ClassNotFoundException ex) {
 				attributes = null;
-				logger.warn("Couldn't read attributes from prev. trained classifier from file.", ex);
+				logger.warn("Couldn't read attributes from prev. trained classifier file (" + attributesOutputFile.getPath() + ")", ex);
 			}
 		}
 		// try to load existing trained classifier
 		if (classifierOutputFile.exists()) {
 			try {
 				classifier = readObject(classifierOutputFile, Classifier.class);
+				logger.info("Restored classifier from prev. trained classifier file (" + classifierOutputFile.getPath() + ")");
 			} catch (IOException | ClassNotFoundException ex) {
 				attributes = null;
 				classifier = null;
-				logger.warn("Couldn't read prev. trained classifier from file.", ex);
+				logger.warn("Couldn't read classifier from prev. trained classifier file (" + classifierOutputFile.getPath() + ")", ex);
 			}
 		}
 	}
@@ -636,19 +614,21 @@ public class TwitterSentimentClassifierImpl implements ITwitterSentimentClassifi
 	}
 
 	/**
-	 * Returns the sentiment for a given class distribution.
+	 * Returns the name of the classifier.
 	 *
-	 * @param classDist
-	 * @return
+	 * @return the name of the classifier.
 	 */
-	private Sentiment getSentimentForClassDistribution(double[] classDist) {
-		if (classDist[CLASS_INDEX_SENTIMENT_NEGATIVE] > 0.5) {
-			return Sentiment.NEGATIVE;
-		} else if (classDist[CLASS_INDEX_SENTIMENT_POSITIVE] > 0.5) {
-			return Sentiment.POSITIVE;
-		} else {
-			return Sentiment.NEUTRAL;
-		}
+	public String getName() {
+		return classifierName;
+	}
+
+	/**
+	 * Sets the classifier name.
+	 *
+	 * @param classifierName the new classifier name.
+	 */
+	public void setName(String classifierName) {
+		this.classifierName = classifierName;
 	}
 
 	/**
@@ -680,7 +660,7 @@ public class TwitterSentimentClassifierImpl implements ITwitterSentimentClassifi
 	 * classifier, false otherwise.
 	 */
 	public boolean getImportTrainedClassifier() {
-		return exportTrainedClassifier;
+		return importTrainedClassifier;
 	}
 
 	/**
@@ -690,7 +670,7 @@ public class TwitterSentimentClassifierImpl implements ITwitterSentimentClassifi
 	 * @param val the new flag value
 	 */
 	public void setImportTrainedClassifier(boolean val) {
-		exportTrainedClassifier = val;
+		importTrainedClassifier = val;
 	}
 
 	/**
@@ -713,63 +693,21 @@ public class TwitterSentimentClassifierImpl implements ITwitterSentimentClassifi
 
 	/**
 	 * Returns a file object of the output file for attributes data.
+	 * ('[classifierName].attributes')
 	 *
 	 * @return a file object of the output file for attributes data.
 	 */
 	public File getAttributesOutputFile() {
-		return new File(exportDirectory, attributesOutputFileName);
-	}
-
-	/**
-	 * Returns the file name used to export the attributes data.
-	 *
-	 * @return the file name used to export the attributes data.
-	 */
-	public String getAttributesOutputFileName() {
-		return attributesOutputFileName;
-	}
-
-	/**
-	 * Sets the file name used to export the attributes data.
-	 *
-	 * @param fileName the new file name
-	 */
-	public void setAttributesOutputFileName(String fileName) {
-		attributesOutputFileName = fileName;
+		return new File(exportDirectory, classifierName + ".attributes");
 	}
 
 	/**
 	 * Returns a file object of the output file for the trained classifier.
+	 * ('[classifierName]-[classifierModel].classifier')
 	 *
 	 * @return a file object of the output file for the trained classifier.
 	 */
 	public File getClassifierOuptutFile() {
-		return new File(exportDirectory, classifierOutputFileName);
-	}
-
-	/**
-	 * Returns the file name used to export the trained classifier.
-	 *
-	 * @return the file name used to export the trained classifier.
-	 */
-	public String getClassifierOuptutFileName() {
-		return classifierOutputFileName;
-	}
-
-	/**
-	 * Sets the file name used to export the trained classifier.
-	 *
-	 * @param fileName the new file name
-	 */
-	public void setClassifierOutputFileName(String fileName) {
-		classifierOutputFileName = fileName;
-	}
-
-	public Class<? extends Classifier> getClassifierType() {
-		return classifierType;
-	}
-
-	public void setClassifierType(Class<? extends Classifier> type) {
-		classifierType = type;
+		return new File(exportDirectory, classifierName + "-" + classifierModel + ".classifier");
 	}
 }

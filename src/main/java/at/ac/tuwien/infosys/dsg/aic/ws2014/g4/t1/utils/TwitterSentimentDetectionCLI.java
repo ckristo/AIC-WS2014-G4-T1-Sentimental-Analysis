@@ -1,28 +1,27 @@
-package at.ac.tuwien.infosys.dsg.aic.ws2014.g4.t1;
+package at.ac.tuwien.infosys.dsg.aic.ws2014.g4.t1.utils;
 
+import at.ac.tuwien.infosys.dsg.aic.ws2014.g4.t1.classifier.TwitterSentimentClassifierImpl;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.util.ArrayList;
-
+import java.util.Collection;
+import java.util.HashSet;
 import twitter4j.Query;
 import twitter4j.QueryResult;
 import twitter4j.Status;
 import twitter4j.Twitter;
 import twitter4j.TwitterException;
 import twitter4j.TwitterFactory;
-import at.ac.tuwien.infosys.dsg.aic.ws2014.g4.t1.classifier.TwitterSentimentClassifierImpl;
-import java.util.Collection;
-import java.util.HashSet;
 
 public class TwitterSentimentDetectionCLI {
 
 	public static void main(String[] args) {
 		String line = "";
 		String cmd;
-		
+
 		TwitterSentimentClassifierImpl classifier = new TwitterSentimentClassifierImpl();
-		
+
 		ArrayList<Status> tweets = new ArrayList<>();
 		Collection<double[]> sentiments = new HashSet<>();
 		String searchTerm = "";
@@ -30,8 +29,8 @@ public class TwitterSentimentDetectionCLI {
 		System.out.println("************************************");
 		System.out.println("* Twitter Sentiment Detection v1.0 *");
 		printCmds();
-        
-        int tweetCount = 0;
+
+		int tweetCount = 0;
 
 		while (true) {
 			System.out.print("*:> ");
@@ -50,12 +49,10 @@ public class TwitterSentimentDetectionCLI {
 					printCmds();
 				} else {
 					System.out.println("*:> Training Data...");
-					String[] arg = { line.split(" ")[1] };
+					String[] arg = {line.split(" ")[1]};
 					Sentiment140DataLoader.main(arg);
 				}
-			}
-
-			else if (cmd.equals("gettweets")) {
+			} else if (cmd.equals("gettweets")) {
 
 				if (line.split(" ").length < 3) {
 					error("Please add number of tweets and searchWord!");
@@ -63,45 +60,40 @@ public class TwitterSentimentDetectionCLI {
 				} else {
 					System.out.println("*:> Downloading Tweets...");
 					searchTerm = line.split(" ")[2];
-                    tweetCount = Integer.valueOf(line.split(" ")[1]);
+					tweetCount = Integer.valueOf(line.split(" ")[1]);
 					tweets = getTweets(tweetCount, searchTerm);
 				}
-			}
-
-			else if (cmd.equals("classify")) {
+			} else if (cmd.equals("classify")) {
 				if (tweets.size() < 1) {
 					error("Please get tweets first!");
 					printCmds();
-				} else
+				} else {
 					System.out.println("*:> Classifying Tweets...");
+				}
 				try {
 					sentiments = classifier.classifyWithProbabilities(tweets).values();
 				} catch (Exception e) {
 					error("Classifier stopped!");
 					e.printStackTrace();
 				}
-                
-                Double[] sentSum = new Double[] {0.0d, 0.0d, 0.0d};
+
+				Double[] sentSum = new Double[]{0.0d, 0.0d, 0.0d};
 				for (double[] s : sentiments) {
 					sentSum[0] += s[0];
-                    sentSum[1] += s[1];
-                    sentSum[2] += s[2];
+					sentSum[1] += s[1];
+					sentSum[2] += s[2];
 				}
-				
-                sentSum[0] /= tweetCount;
-                sentSum[1] /= tweetCount;
-                sentSum[2] /= tweetCount;
+
+				sentSum[0] /= tweetCount;
+				sentSum[1] /= tweetCount;
+				sentSum[2] /= tweetCount;
 
 				System.out.format("*:> successfully classified %d tweets for searchterm '%s'%n", tweetCount, searchTerm);
 				System.out.format("- negative: %.2f%n", sentSum[0]);
-                System.out.format("- positive: %.2f%n", sentSum[2]);
-			}
-
-			else if (cmd.equals("exit")) {
+				System.out.format("- positive: %.2f%n", sentSum[2]);
+			} else if (cmd.equals("exit")) {
 				break;
-			}
-
-			else {
+			} else {
 				error(" Unknownd command: " + cmd);
 				printCmds();
 			}
@@ -111,7 +103,7 @@ public class TwitterSentimentDetectionCLI {
 	public static ArrayList<Status> getTweets(int count, String searchWord) {
 		Twitter twitter = new TwitterFactory().getInstance();
 		Query query = new Query(searchWord);
-		ArrayList<Status> tweets = new ArrayList<Status>();
+		ArrayList<Status> tweets = new ArrayList<>();
 		query.setCount(count);
 		query.setLang("en");
 		try {
