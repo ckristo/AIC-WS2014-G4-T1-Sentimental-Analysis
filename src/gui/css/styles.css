@@ -1,0 +1,57 @@
+
+h1 {
+	margin-bottom: 1em;
+}
+
+.container {
+	padding: 2em;
+}
+
+span.required {
+	color: red;
+}
+
+.container .alert {
+	margin-top: 10px;
+	margin-bottom: 10px;
+	padding: 5px 15px;
+	display: none;
+}
+
+img.loader {
+	display: none;
+	margin-top: 0.5em;
+}
+
+.success-msg-username {
+	font-weight: bold;
+}
+
+.success-msg-token {
+	font-size: 0.8em;
+	font-family: monospace;
+}
+
+form {
+	margin-bottom: 2em;
+}
+
+.label-negative {
+	background-color: #d9534f;
+}
+.label-neutral {
+	background-color: #777;
+}
+.label-positive {
+	background-color: #5cb85c;
+}
+
+.query-result.sentiment-negative.panel {
+	background-color: #fff3ef;
+}
+.query-result.sentiment-neutral.panel {
+	background-color: #fafafa;
+}
+.query-result.sentiment-positive.panel {
+	background-color: #f2fff2;
+}
