@@ -391,6 +391,7 @@ public class TwitterSentimentClassifierImpl extends AbstractTwitterSentimentClas
 	@Override
 	public void useClassifierModel(ClassifierModel model) {
 		classifierModel = model;
+		classifier = null; // force a classifier restore
 	}
 
 	@Override

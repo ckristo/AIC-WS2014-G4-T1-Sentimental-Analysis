@@ -221,13 +221,14 @@
 		var successCallback = function(data) {
 			$query_loader.hide();
 			
-			showFormElementAlertMsg($input_query_alert_placeholder, "Query performed successfully -- see your results below:", 'success');
-			
-			//TODO
-			console.dir(data.aggregated_sentiment);
-			
-			generateQueryChart(data.aggregated_sentiment);
-			populateQueryResults(data.tweets);
+			if (data.tweets.length > 0) {
+				showFormElementAlertMsg($input_query_alert_placeholder, "Query performed successfully -- see your results below:", 'success');
+				
+				populateQueryResults(data.tweets);
+				generateQueryChart(data.aggregated_sentiment);
+			} else {
+				showFormElementAlertMsg($input_query_alert_placeholder, "Query performed successfully -- no tweets found", 'info');
+			}
 		};
 		
 		var errorCallback = function(statusCode, errorMsg) {
@@ -260,8 +261,6 @@
 		for (var i in data) {
 			series_data.push([i, data[i]]);
 		}
-		
-		console.dir(series_data);
 		
 		$query_chart.highcharts({
 			chart: {

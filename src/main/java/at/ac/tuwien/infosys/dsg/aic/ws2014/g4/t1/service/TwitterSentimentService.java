@@ -81,7 +81,6 @@ public class TwitterSentimentService implements ITwitterSentimentService {
 	}
 
 	// TODO: cache twitter search
-	
 	@Override
 	public List<Status> searchForTweets(String username, Date start, Date end) throws TwitterSentimentServiceException {
 		// create query string
@@ -122,6 +121,8 @@ public class TwitterSentimentService implements ITwitterSentimentService {
 		} catch (IllegalStateException | ClassifierException ex) {
 			throw new TwitterSentimentServiceException("Couldn't classify tweets", ex);
 		}
+
+		classifier.setExportDirectory(oldExportDir);
 
 		return classifiedTweets;
 	}
