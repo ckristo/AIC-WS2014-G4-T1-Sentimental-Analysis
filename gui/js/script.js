@@ -35,6 +35,9 @@
 		$input_from.datepicker();
 		$input_to.datepicker();
 		
+		$input_from.next('.input-group-addon').click(function() { $input_from.focus(); }).css('cursor','pointer');
+		$input_to.next('.input-group-addon').click(function() { $input_to.focus(); }).css('cursor','pointer');
+		
 		$query_form = $('#query-form');
 		$query_results = $('#query-results');
 		$query_chart = $('#query-chart');
@@ -183,6 +186,10 @@
 		var errorCallback = function(statusCode, errorMsg) {
 			$register_loader.hide();
 			
+			if (statusCode === 0) {
+				errorMsg = "Couldn't connect to webservice";
+			}
+			
 			showFormElementAlertMsg($input_username, "Couldn't register user:<br/>"+errorMsg);
 		};
 
@@ -233,6 +240,10 @@
 		
 		var errorCallback = function(statusCode, errorMsg) {
 			$query_loader.hide();
+			
+			if (statusCode === 0) {
+				errorMsg = "Couldn't connect to webservice";
+			}
 			
 			showFormElementAlertMsg($input_query_alert_placeholder, "Couldn't perform query operation:<br/>"+errorMsg);
 		};
@@ -287,6 +298,7 @@
 					}
 				}
 			},
+			colors: ['#d9534f', '#777', '#5cb85c'],
 			series: [{
 				type: 'pie',
 				name: 'Aggregated sentiment',
