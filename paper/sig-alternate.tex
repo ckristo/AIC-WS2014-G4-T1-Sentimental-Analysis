@@ -45,10 +45,12 @@
 %
 % For tracking purposes - this is V2.0 - May 2012
 
+
+
+
+
 \documentclass{sig-alternate}
-
 \usepackage{hyperref}
-
 \begin{document}
 %
 % --- Author Metadata here ---
@@ -56,6 +58,7 @@
 %\CopyrightYear{2007} % Allows default copyright year (20XX) to be over-ridden - IF NEED BE.
 %\crdata{0-12345-67-8/90/01}  % Allows default copyright data (0-89791-88-6/97/05) to be over-ridden - IF NEED BE.
 % --- End of Author Metadata ---
+
 
 \title{Twitter Sentiment Analysis}
 \subtitle{Advanced Internet Computing}
@@ -298,16 +301,20 @@ From a survey of existing literature, it appears that the problem of sentiment a
 Our own implementation seems to suffer from a lack of advanced processing features, with results being only marginally better than random. The best accuracy our implementation achieved was 55\% using a SVM machine learning approach and a training set of size 100k. We tried other machine learning approaches (kNN and Bayes) and an even bigger training set of size 200k, but couldn't improve the performance of the classifier (see the results of the table below).\\
 
 \begin{tabular}{|l|c|c|c|c|}
-	\hline
-	classifier model / training set size & \textbf{10k} & \textbf{20k} & \textbf{100k} & \textbf{200k} \\
-	\hline
-	\textbf{SVM} & 52.6104\% & 52.008\% & 54.6185\% & 52.6104\% \\
-	\hline
-	\textbf{Bayes} & 46.988\% & 46.5863\% & 48.1928\% & 48.996\% \\
-	\hline
-	\textbf{kNN} & 41.5663\% & 43.1727\% & 47.7912\% & 48.5944\% \\
-	\hline
+ \hline
+ & \multicolumn{4}{c|}{training set size} \\ 
+ \hline
+ classifier model & \textbf{10k} & \textbf{20k} & \textbf{100k} & \textbf{200k} \\
+ \hline
+ \textbf{SVM} & 52.61\% & 52.0\% & 54.62\% & 52.61\% \\
+ \hline
+ \textbf{Bayes} & 46.99\% & 46.59\% & 48.19\% & 48.99\% \\
+ \hline
+ \textbf{kNN} & 41.56\% & 43.17\% & 47.79\% & 48.59\% \\
+ \hline
 \end{tabular}
+
+\vspace{1cm}
 
 (training data and test data taken from Sentiment140, see \url{http://help.sentiment140.com/for-students/}; test set size was 500 entries of manually-classified tweets) \\
 
