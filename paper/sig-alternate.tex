@@ -216,8 +216,9 @@ After preparing the data, the text has to be separated into different features. 
 
 \subsection{Overview}
 
-In the context of sentiment analysis, classification is intended to determine the sentiment of a piece of text (such as a Twitter status), e.g. how positive or negative the sentiment behind the content is. This is also referred to as "sentiment polarity classifications", to differentiate it from other sorts of sentiment. A variety of other metrics exists, such as political affiliation (e.g. conservative/liberal) or various kinds of approval/disapproval \cite{pang2008opinion}. Sentiment classification is a classical natural language processing (NLP) problem, and its high complexity is largely founded in the complexity and ambiguity of human speech itself (cite???).
+In the context of sentiment analysis, classification is intended to determine the sentiment of a piece of text (such as a Twitter status), e.g. how positive or negative the sentiment behind the content is. This is also referred to as "sentiment polarity classifications", to differentiate it from other sorts of sentiment. A variety of other metrics exists, such as political affiliation (e.g. conservative/liberal) or various kinds of approval/disapproval \cite{pang2008opinion}.
 
+Additionally, the degree of objectivity or subjectivity of content can be determined. This can also be combined with sentiment analysis, in order to filter out noise and improve overall results \cite{barbosa2010robust}.
 
 
 The already high complexity of sentiment analysis is compounded by the typical terseness of tweets (thus containing few relevant words), as well as frequent use of informal language and (sometimes ambiguous) abbreviations \cite{kouloumpis2011twitter}. Sentiment analysis at the phrase level is more complicated than at the document level, and has been developed only more recently. Furthermore, spelling errors and informal spelling are frequent. \cite{agarwal2011sentiment}.
@@ -226,10 +227,13 @@ Furthermore, tweets often combine different or even diametrically opposing senti
 
 On the other hand, microblog content might also offer some clues which are unlikely to appear in a more formal medium. For example, emoticons are frequently used to aid classification \cite{agarwal2011sentiment, kouloumpis2011twitter}, or to tag an unclassified training set \cite{go2009twitter}. 
 
-All those specialities were already considered by our pre-processing step. In the following section we want to concentrate on the classification of already pre-processed tweets, were the stated specialities are already eliminated.
+All those specialities were already considered by our pre-processing step. In the following section we want to concentrate on the classification of already pre-processed tweets, where the stated specialities are already eliminated.
 
+In addition, tweets often combine different or even diametrically opposing sentiments in close proximity. While these are easily separated for humans, this task is very complex for machines \cite{vinodhini2012sentiment}. While highly involved classification and processing methods exist, a frequent observation is that they lead to only marginally better or even worse results (see e.g. \cite{agarwal2011sentiment}).
 
+On the other hand, microblog content might also offer some clues which are unlikely to appear in a more formal medium. For example, emoticons are frequently used to aid classification \cite{agarwal2011sentiment, kouloumpis2011twitter}, or to tag an unclassified training set \cite{go2009twitter}. Furthermore, it is possible to consider which user posted a specific message, e.g. to limit influence from "biased" accounts \cite{barbosa2010robust}.
 
+\medskip
 
 In the literature, many approaches to classifying tweets using various combinations of features and machine learning algorithms are described.
 
@@ -244,11 +248,17 @@ A variety of features can be extracted from messages and used for classification
 In addition to simple lists, processing features as part of more complex structures is also possible. In \cite{agarwal2011sentiment}, a tree kernel is used to perform classification over many different features at once. These features include integers, reals and booleans, and form a hierarchical structure (the tree). A Support Vector Machine is used for learning, with the results outperforming a second implementation using unigrams. Even better results were obtained by combining both.
 
 
+\medskip
+
 A fundamental problem of all sentiment analysis methods is that the meaning of words often depends strongly on context \cite{vinodhini2012sentiment}, therefore simple features may be strongly misleading. The simplest example is negation using a preceding "not", which completely inverts the sentiment of the word it is connected to.
 
-Approaches to solving this problem include the use of bigrams, unigrams with explicit negation features \cite{go2009twitter} or Part-of-Speech (POS) tagging \cite{kouloumpis2011twitter}. However, the success of such methods seems to vary significantly with the precise application area and implementation, and such more advanced methods may actually yield worse results than simple unigrams. POS tagging in particular appears to consistently decrease accuracy \cite{agarwal2011sentiment, kouloumpis2011twitter, go2009twitter}.
+Approaches to solving this problem include the use of bigrams, unigrams with explicit negation features \cite{go2009twitter} or Part-of-Speech (POS) tagging \cite{kouloumpis2011twitter}. However, the success of such methods seems to vary significantly with the precise application area and implementation, and such more advanced methods may actually yield worse results than simple unigrams. POS tagging in particular appears to frequently decrease accuracy \cite{agarwal2011sentiment, kouloumpis2011twitter, go2009twitter}, although others have reported good results.
 
-Frequently, different features are combined (e.g. unigrams + bigrams \cite{go2009twitter}), leading to better overall results.
+Frequently, different features are combined, leading to better overall results. An example is the combination of unigrams and bigrams investigated in \cite{go2009twitter}.
+
+In another approach, Barbosa and Feng \cite{barbosa2010robust} combined POS tags with subjectivity and polarity values taken from a dictionary. Limiting the classification to parts which are pre-classified as subjective helped improve the following polarity detection.
+
+\medskip
 
 Sarcasm is frequently used on platforms such as Twitter, but resolving or even detecting sarcasm is very difficult. In \cite{gonzalez2011identifying}, an attempt was made to detect sarcasm in Tweets, but results were not very satisfying. However, humans did not perform much better at this tasks, leading the authors to conclude that extensive knowledge about the context  and participants of a conversation would be required for both humans and algorithms.
 
@@ -258,7 +268,7 @@ Semantic analysis can be used to solve many of the aforementioned problems \cite
 
 \subsubsection{Machine Learning}
 
-For machine learning, usually some sort of supervised learning is used, where a pre-labelled training set is used for learning (and optionally a second set for evaluation). Once training is complete, new data can be classified. Popular machine learning techniques used in this field include Naive Bayes and Maximum Entropy Classifiers, as well as Support Vector Machines \cite{vinodhini2012sentiment}.
+For machine learning, usually some sort of supervised learning is used, where a pre-labelled training set is used for learning (and optionally a second set for evaluation). Once training is complete, new data can be classified. Popular machine learning techniques used in this field include Naive Bayes and Maximum Entropy Classifiers, as well as Support Vector Machines \cite{vinodhini2012sentiment}. However, the choice of algorithm does not seem to have much effect on result quality, and the literature places little emphasis on this factor.
 
 In \cite{go2009twitter}, three algorithms (Naive Bayes, Maximum Entropy and SVM) are compared. Training was done on emoticon data, resulting in accuracy of over 80\% for all three approaches.
 
@@ -266,24 +276,25 @@ Kouloumpis et al. \cite{kouloumpis2011twitter} use AdaBoost as a learning algori
 
 
 
-Coming up with a suitable dataset to train the machine learning algorithm can be quite challenging on its own. One possibility is the use of manually tagged datasets, but these are usually quite limited in size due to the human effort required to build them. Alternatively, the training set can be automatically tagged using some presumably reliable indicator, such as emoticons \cite{go2009twitter}.
+Coming up with a suitable dataset to train the machine learning algorithm can be quite challenging on its own. One possibility is the use of manually tagged datasets, but these are usually quite limited in size due to the human effort required to build them. However, such datasets may have limited quality and sometimes very low diversity (e.g. \cite{barbosa2010robust}). Alternatively, the training set can be automatically tagged using some presumably reliable indicator, such as emoticons \cite{go2009twitter}.
 
 
 \subsection{Our Approach}
 
 In our work, we used a strongly simplified approach which focuses on individual tokens (unigrams). All aforementioned issues such as negation or sarcasm notwithstanding, the sentiment of a tweet is often determined with reasonable accuracy by a small set of keywords signalling strong emotion.
 
-Semantic or grammatical analysis was deemed to be for too complex, and simplified methods were judged to not provide notable improvements and lead to false positives. We also did not differentiate between objective and subjective valuation, since both are likely relevant for the given use case.
+Full-scale semantic or grammatical analysis was deemed to be far too complex, and simplified methods were judged to not provide notable improvements and lead to false positives. We also did not attempt to differentiate between objective and subjective valuation, since both are likely relevant for the given use case.
 
-TODO/FIXME: Three different machine learning algorithms were tested: Naive Bayes, IBk and SMO. Training of the support vector machine was significantly slower than for the other algorithms, while results were ??????TODO. 
+Three different machine learning algorithms were tested: Naive Bayes, Support Vector Machine and $k$-Nearest-Neighbour. The performance of the support vector machine was slightly better than that of other algorithms, but training was significantly slower.
 
-\subsection{Conclusions}
-
-A frequent observation is that more involved classification methods lead to only marginally better or even worse results (see e.g. \cite{agarwal2011sentiment}).
-
-TODO: extend
+For training, we use tagged tweets from the Sentiment140\footnote{http://help.sentiment140.com/home} corpus.
 
 \section{Conclusions}
+
+From a survey of existing literature, it appears that the problem of sentiment analysis of general text, and even more so of microblogging content, is still largely unsolved. While some approaches yield relatively good results at more than $70\%$ accuracy over large data sets, accurate classification of specific tweets is not yet possible.
+
+Our own implementation seems to suffer from a lack of advanced processing features, with results being only marginally better than random.
+
 
 
 %
@@ -291,6 +302,7 @@ TODO: extend
 % initial runs of your .tex file to
 % produce the bibliography for the citations in your paper.
 \bibliographystyle{abbrv}
+
 \bibliography{sigproc}  % sigproc.bib is the name of the Bibliography in this case
 % You must have a proper ".bib" file
 %  and remember to run:
