@@ -223,7 +223,7 @@ Additionally, the degree of objectivity or subjectivity of content can be determ
 
 The already high complexity of sentiment analysis is compounded by the typical terseness of tweets (thus containing few relevant words), as well as frequent use of informal language and (sometimes ambiguous) abbreviations \cite{kouloumpis2011twitter}. Sentiment analysis at the phrase level is more complicated than at the document level, and has been developed only more recently. Furthermore, spelling errors and informal spelling are frequent. \cite{agarwal2011sentiment}.
 
-Furthermore, tweets often combine different or even diametrically opposing sentiments in close proximity. While these are easily separated for humans, this task is very complex for machines \cite{vinodhini2012sentiment}. While highly involved classification and processing methods exist, a frequent observation is that they lead to only marginally better or even worse results (see e.g. \cite{agarwal2011sentiment}).
+In addition, tweets often combine different or even diametrically opposing sentiments in close proximity. While these are easily separated for humans, this task is very complex for machines \cite{vinodhini2012sentiment}. While highly involved classification and processing methods exist, a frequent observation is that they lead to only marginally better or even worse results (see e.g. \cite{agarwal2011sentiment}).
 
 On the other hand, microblog content might also offer some clues which are unlikely to appear in a more formal medium. For example, emoticons are frequently used to aid classification \cite{agarwal2011sentiment, kouloumpis2011twitter}, or to tag an unclassified training set \cite{go2009twitter}. Furthermore, it is possible to consider which user posted a specific message, e.g. to limit influence from "biased" accounts \cite{barbosa2010robust}.
 
@@ -250,7 +250,7 @@ In addition to simple lists, processing features as part of more complex structu
 
 A fundamental problem of all sentiment analysis methods is that the meaning of words often depends strongly on context \cite{vinodhini2012sentiment}, therefore simple features may be strongly misleading. The simplest example is negation using a preceding "not", which completely inverts the sentiment of the word it is connected to.
 
-Approaches to solving this problem include the use of bigrams, unigrams with explicit negation features \cite{go2009twitter} or Part-of-Speech (POS) tagging \cite{kouloumpis2011twitter}. However, the success of such methods seems to vary significantly with the precise application area and implementation, and such more advanced methods may actually yield worse results than simple unigrams. POS tagging in particular appears to frequently decrease accuracy \cite{agarwal2011sentiment, kouloumpis2011twitter, go2009twitter}, although others have reported good results.
+Approaches to solving this problem include the use of bigrams, unigrams with explicit negation features \cite{go2009twitter} or Part-of-Speech (POS) tagging \cite{kouloumpis2011twitter}. However, the success of such methods seems to vary significantly with the precise application area and implementation, and such more advanced methods may actually yield worse results than simple unigrams. POS tagging in particular appears to frequently decrease accuracy \cite{agarwal2011sentiment, kouloumpis2011twitter, go2009twitter}, although others have reported good results \cite{barbosa2010robust}.
 
 Frequently, different features are combined, leading to better overall results. An example is the combination of unigrams and bigrams investigated in \cite{go2009twitter}.
 
@@ -260,7 +260,7 @@ In another approach, Barbosa and Feng \cite{barbosa2010robust} combined POS tags
 
 Sarcasm is frequently used on platforms such as Twitter, but resolving or even detecting sarcasm is very difficult. In \cite{gonzalez2011identifying}, an attempt was made to detect sarcasm in Tweets, but results were not very satisfying. However, humans did not perform much better at this tasks, leading the authors to conclude that extensive knowledge about the context  and participants of a conversation would be required for both humans and algorithms.
 
-Care must also be taken to exclude features which may bias the classification of a message. When searching for tweets containing a certain term, for example, it might be beneficial to exclude this term from the features \cite{go2009twitter}. Otherwise, the overall sentiment for this token might influence the sentiment result of the current tweet, where exactly this sentiment in \textit{relation to the term} is desired.
+Care must also be taken to exclude features which may bias the classification of a message. When searching for tweets containing a certain term, for example, it might be beneficial to exclude this term from the features \cite{go2009twitter}. Otherwise, the overall sentiment for this token might influence the sentiment result of the current tweet, where exactly this sentiment \textit{in relation to the term} is desired.
 
 Semantic analysis can be used to solve many of the aforementioned problems \cite{saif2012semantic}. References to entities are classified into "semantic concepts", allowing for conclusions over broader classes of entities. The authors achieved an improvement of 6.5\% over unigrams and 4.8\% over POS features.
 
