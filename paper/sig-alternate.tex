@@ -115,7 +115,7 @@ Christoph Kindl\\
 % 3rd. author
 \alignauthor
 Alexander Wurl\\
-\affaddr{1027229}\\
+\affaddr{0826264}\\
 \affaddr{Vienna University of Technology}\\
 \affaddr{Austria}\\
 \and % use '\and' if you need 'another row' of author names
@@ -146,16 +146,14 @@ Twitter Sentiment Analysis is a crucial task in today's scenarios where opinions
 \section{Introduction}
 Social media has revolutionised the way in which people communicate. Gaining information from social networks is beneficial for analysis of user opinion for example measuring the feedback on a recently released product, looking at opinions concerning upcoming elections or the enjoyment of an ongoing event. 
 
-Sentiment analysis is a relatively new area, which deals with extracting user opinion. Since Twitter has well established as social media platform for personal continuous news and opinions flow from all over the world, it also became an eye catcher for different organisations to get feedback of their product applying sentiment analysis on tweets. As a consequence this trend influenced various marketing and sales strategies and created a new market for companies that are specialise on sentimental analysing tweets, like... An example of a positive sentiment is, "traveling is fun" alternatively, a negative sentiment is "it's a horrible day, i am not going outside". Furthermore, emoticons such as ":-)" is a positive and ":-(" is a negative expression which also influence the result of sentiment analysis. Objective texts are deemed not to be expressing any sentiment, such as news headlines, for example "company shelves wind sector plans".
+Sentiment analysis is a relatively new area, which deals with extracting user opinion. Since Twitter has well established as social media platform for personal continuous news and opinions flow from all over the world, it also became an eye catcher for different organisations to get feedback of their product applying sentiment analysis on tweets. As a consequence this trend influenced various marketing and sales strategies and created a new market for companies that are specialised on sentimental analysing tweets, like AlchemyAPI, Zemanta and OpenCalais \cite{sentiment2012twitter}. An example of a positive sentiment is, "traveling is fun" alternatively, a negative sentiment is "it's a horrible day, i am not going outside". Furthermore, emoticons such as ":-)" is a positive and ":-(" is a negative expression which also influence the result of sentiment analyse. Objective texts are deemed not to be expressing any sentiment, such as news headlines, for example "company shelves wind sector plans".
 
-There are many ways in which data can be leveraged to give a better understanding of user opinion. Sentiment analysis of tweets aims for analysing whether the global opinion located at Twitter concerning an expression is positive or negative. This can be done in different ways, e.g. different grammatical and language rules. Such problems are at the heart of natural language processing (NLP) and data mining research.
-Generally,... about twitter api..
+There are many ways in which data can be leveraged to give a better understanding of user opinion. Sentiment analysis of tweets aims for analysing whether the global opinion located at Twitter concerning an expression is positive or negative. This can be done in different ways, e.g. different grammatic and language rules. Such problems are at the heart of natural language processing (NLP) and data mining research.
 
 \section{Data Description}
-The analayzed text posts - so called tweets - are composed by twitter users. They are characterized by a maximum length of 140 characters, including links, pictures and special tagged words. To tag a word certain prefix is needed that is also supported by twitter. For example the @-symbol is used to mention some text represented as a link to another user of twitter. The hash-symbol labels a word to mark important keywords in tweets.
+The analayzed text posts - so called tweets - are composed by twitter users. They are characterized by a maximum length of 140 characters, including links, pictures and special tagged words. To tag a word certain prefix is needed that is also supported by twitter. For example the @-symbol is used to mention some text represented as a link to another user of twitter. The \#-symbol labels a word to mark important keywords in tweets.
 
-It's obvious that collecting many tweets in some particular fields by the Twitter A
-PI also take some problems into account: language's specifications like grammar or slangs. Therefore we focused in our research on the English language.
+It's obvious that collecting many tweets in some particular fields by the Twitter API also take some problems into account: language's specifications like grammar or slangs. Therefore we focused in our research on the English language.
 
 \section{Pre-Processing}
 Since all different kinds of classifiers try to extract, evaluate and interpret different features, the amount and quality of those features is essential for a good result of the classification. We want to examine some state of the art pre-processing and feature reduction techniques, which presented themselves as very promising and effective. While examining them, we will discuss, which ones of the techniques we have also implemented in our Sentiment Analyzing Software and how we did this.
@@ -166,7 +164,7 @@ Since we are dealing with twitter messages, we have to deal with some specialtie
 \begin{itemize}
 \begin{item}
 Limited Length\\
-Twitter messages have a limited length of 140 characters. This fact leads to the occurrence of many abbreviations and slang formulations. Some examples are "OMG" for "Oh my god" or "FTW" for "For the win".
+Twitter messages have a limited length of 140 characters. This fact leads to the occurrence of many abbreviations and slang formulations. Some examples are "OMG" for "Oh my god" or "FTW" for "the".
 \end{item}
 
 
@@ -294,7 +292,7 @@ TODO: extend
 \bibliography{sigproc}  % sigproc.bib is the name of the Bibliography in this case
 % You must have a proper ".bib" file
 %  and remember to run:
-% latex bibtex latex latex
+% latex und latex latex
 % to resolve all references
 %
 % ACM needs 'a single self-contained file'!
