@@ -47,6 +47,8 @@
 
 \documentclass{sig-alternate}
 
+\usepackage{hyperref}
+
 \begin{document}
 %
 % --- Author Metadata here ---
@@ -98,7 +100,6 @@
 % affiliation/address with \affaddr, and tag the
 % e-mail address with \email.
 %
-% 1st. author
 % 1st. author
 \alignauthor
 Martin Kaufleitner\\
@@ -155,9 +156,9 @@ Sentiment analysis is a relatively new area, which deals with extracting user op
 There are many ways in which data can be leveraged to give a better understanding of user opinion. Sentiment analysis of tweets aims for analysing whether the global opinion located at Twitter concerning an expression is positive or negative. This can be done in different ways, e.g. different grammatical and language rules. Such problems are at the heart of natural language processing (NLP) and data mining research.
 
 \section{Data Description}
-The analayzed text posts - so called tweets - are composed by twitter users. They are characterized by a maximum length of 140 characters, including links, pictures and special tagged words. To tag a word certain prefix is needed that is also supported by twitter. For example the @-symbol is used to mention some text represented as a link to another user of twitter. The \#-symbol labels a word to mark important keywords in tweets.
+The analyzed text posts - so called tweets - are composed by twitter users. They are characterized by a maximum length of 140 characters, including links, pictures and special tagged words. To tag a word certain prefix is needed that is also supported by twitter. For example the @-symbol is used to mention some text represented as a link to another user of twitter. The \#-symbol labels a word to mark important keywords in tweets.
 
-It's obvious that collecting many tweets in some particular fields by the Twitter API also take some problems into account: language's specifications like grammar or slangs. Therefore we focused in our research on the English language.
+It's obvious that collecting many tweets in some particular fields by the Twitter API also take some problems into account: language's specifications like grammar or slang. Therefore we focused in our research on the English language.
 
 \section{Pre-Processing}
 Since all different kinds of classifiers try to extract, evaluate and interpret different features, the amount and quality of those features is essential for a good result of the classification. We want to examine some state of the art pre-processing and feature reduction techniques, which presented themselves as very promising and effective. While examining them, we will discuss, which ones of the techniques we have also implemented in our Sentiment Analyzing Software and how we did this.
@@ -195,7 +196,6 @@ Symbols like RT for Retweet, @ for linking other users or a hashtag often occur 
 
 \subsection{Methods}
 Now let us have a look at some different methods according to the pre-processing step which deal with the problems occurring in the stated twitter domain.
-
 
 \subsubsection{Usernames, Hashtags, Links}
 Most approaches like \cite{go2009twitter} remove all usernames, hashtags and links and replace their occurrences with according tags like <username>. This very simple method reduces the amount of features enormously, since otherwise, each username, which does not give any information about a sentiment, would be treated as a feature. Furthermore, all tweets, which are re-tweets are deleted, since otherwise the original tweet would be over weighted and maybe falsify the result. These methods are stated in almost all twitter sentiment analyzing approaches and since they are very simple, we implemented all of them. But despite of the described processing in \cite{kouloumpis2011twitter} we did not tag tweets when we e.g. remove a link. Unfortunately the paper does not describe in detail, how they use this tag information afterwards, so we decided to leave it out. But concerning better results, this information could in some sense be used to achieve a higher correctness of the classification.
@@ -295,9 +295,23 @@ For training, we use tagged tweets from the Sentiment140\footnote{http://help.se
 
 From a survey of existing literature, it appears that the problem of sentiment analysis of general text, and even more so of microblogging content, is still largely unsolved. While some approaches yield relatively good results at more than $70\%$ accuracy over large data sets, accurate classification of specific tweets is not yet possible.
 
-Our own implementation seems to suffer from a lack of advanced processing features, with results being only marginally better than random.
+Our own implementation seems to suffer from a lack of advanced processing features, with results being only marginally better than random. The best accuracy our implementation achieved was 55\% using a SVM machine learning approach and a training set of size 100k. We tried other machine learning approaches (kNN and Bayes) and an even bigger training set of size 200k, but couldn't improve the performance of the classifier (see the results of the table below).\\
 
+\begin{tabular}{|l|c|c|c|c|}
+	\hline
+	classifier model / training set size & \textbf{10k} & \textbf{20k} & \textbf{100k} & \textbf{200k} \\
+	\hline
+	\textbf{SVM} & 52.6104\% & 52.008\% & 54.6185\% & 52.6104\% \\
+	\hline
+	\textbf{Bayes} & 46.988\% & 46.5863\% & 48.1928\% & 48.996\% \\
+	\hline
+	\textbf{kNN} & 41.5663\% & 43.1727\% & 47.7912\% & 48.5944\% \\
+	\hline
+\end{tabular}
 
+(training data and test data taken from Sentiment140, see \url{http://help.sentiment140.com/for-students/}; test set size was 500 entries of manually-classified tweets) \\
+
+We made several changes / additions to the preprocessing step in order to improve the results, but didn't evaluate each change we made because of costly classifier training (e.g. 200k with SVM took 1 day using a quad-core 3.40GHz machine). Due to the fact that the usage of other machine learning approaches and bigger training sets didn't improve our results that much, we should have included the preprocessing changes for performance evaluation. Furthermore, we used only one prepared training set (Sentiment140) -- maybe we should have tried others as well to improve our results.
 
 %
 % The following two commands are all you need in the
